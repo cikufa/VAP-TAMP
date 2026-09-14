@@ -939,6 +939,9 @@ def run_vlm_planner(
                 except KeyboardInterrupt:
                     print("\n👋 Exiting interactive mode...")
                     break
+                except EOFError:
+                    print("\nNo more input on stdin. Exiting interactive mode...")
+                    break
                 except Exception as e:
                     import traceback
                     print(f"❌ Error during planning: {e}")
@@ -1078,6 +1081,9 @@ def run_vlm_planner(
                 
             except KeyboardInterrupt:
                 print("\n👋 Exiting interactive mode...")
+                break
+            except EOFError:
+                print("\nNo more input on stdin. Exiting interactive mode...")
                 break
             except Exception as e:
                 import traceback
