@@ -326,6 +326,16 @@ def main(
     if use_pickle_map:
         # load from pickle
         voxel_map.read_from_pickle(input_path, num_frames=frame, perception=semantic_sensor)
+        _pts = voxel_map.voxel_pcd.get_pointcloud()[0]
+        _n_points = 0 if _pts is None else int(_pts.shape[0])
+        _n_frames = len(voxel_map.observations)
+        _n_instances = len(voxel_map.get_instances())
+        print(f"📦 Map loaded from {input_path}: {_n_frames} frames, {_n_points} points, {_n_instances} instances")
+        if _n_frames == 0 or _n_points == 0:
+            print("⚠️  The loaded map is EMPTY. The 3D window will render blank and the VLM will receive no crops.")
+            print("   Check the 'Reading data from pickle' progress bar and any 'Skipping frame' warnings above.")
+        elif _n_instances == 0:
+            print("⚠️  No instances were detected in the map. The VLM will receive no crops or scene graph.")
     else:
         # Scan the local area to get a map
         agent.rotate_in_place()
@@ -753,6 +763,10 @@ def run_vlm_planner(
                     add_planner_visuals=True
                 )
                 
+                print(f"🎨 3D window: {len(geoms)} geometries to draw")
+                if len(geoms) == 0:
+                    print("⚠️  Point cloud is empty, so the 3D window will stay blank.")
+
                 # Create persistent visualizer
                 vis = open3d.visualization.Visualizer()
                 vis.create_window(window_name="Stretch AI - Visual Grounding Map", 

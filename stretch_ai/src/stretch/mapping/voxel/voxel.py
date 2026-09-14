@@ -941,6 +941,11 @@ class SparseVoxelMap(object):
             plt.ioff()
             plt.show()
 
+        n_frames = len(self.observations)
+        if n_frames == 0:
+            logger.error(f"Read 0 frames from {filename}: every frame was skipped or the file has no frames")
+            return False
+        logger.info(f"Read {n_frames} frames from {filename}")
         return True
 
     def recompute_map(self):
