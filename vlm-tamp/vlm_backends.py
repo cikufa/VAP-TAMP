@@ -1,20 +1,31 @@
 """Provider adapters for the VAP-TAMP chat-and-image request contract."""
 import base64
+import json
 import os
 import re
 import time
+from types import SimpleNamespace
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 DEFAULT_PROVIDER = "gemini"
 DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 DEFAULT_OPENAI_MODEL = "gpt-4o-2024-05-13"
 
 
-def _requests():
-    # Import only when the first VLM call is made. Importing Conda's urllib3
-    # before Kit starts makes Isaac's vendored botocore bind to an incompatible
-    # ssl_ module during Replicator initialization.
-    import requests
-    return requests
+def _post_json(url, headers, payload, timeout=30):
+    """POST JSON without importing either Conda's or Kit's requests stack."""
+    request = Request(url, data=json.dumps(payload).encode("utf-8"),
+                      headers=headers, method="POST")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            text = response.read().decode("utf-8")
+            status = response.status
+    except HTTPError as error:
+        text = error.read().decode("utf-8", errors="replace")
+        status = error.code
+    return SimpleNamespace(status_code=status, text=text, ok=200 <= status < 300,
+                           json=lambda: json.loads(text) if text else {})
 
 
 class BackendRequestError(RuntimeError):
@@ -62,11 +73,11 @@ class OpenAIBackend:
         payload = dict(chat_input, model=self.model)
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, payload=payload)
-        response = _requests().post(
+        response = _post_json(
             "https://api.openai.com/v1/chat/completions",
-            headers={"Content-Type": "application/json",
-                     "Authorization": f"Bearer {self.api_key}"},
-            json=payload, timeout=60,
+            {"Content-Type": "application/json",
+             "Authorization": f"Bearer {self.api_key}"},
+            payload,
         )
         record("vlm_response", round=round_number, provider=self.provider,
                model=self.model, http_status=response.status_code,
@@ -136,12 +147,21 @@ class GeminiBackend:
         payload = self._convert(chat_input)
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, source_contract=chat_input, payload=payload)
+        response = None
         for attempt in range(2):
-            response = _requests().post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
-                headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
-                json=payload, timeout=60,
-            )
+            try:
+                response = _post_json(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
+                    {"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+                    payload,
+                )
+            except (TimeoutError, URLError, OSError):
+                record("vlm_transport_error", round=round_number,
+                       provider=self.provider, model=self.model, attempt=attempt + 1)
+                if attempt == 0:
+                    time.sleep(2.0)
+                    continue
+                raise BackendRequestError(self.provider, 0, "transport_error") from None
             record("vlm_response", round=round_number, provider=self.provider,
                    model=self.model, attempt=attempt + 1,
                    http_status=response.status_code,
@@ -153,6 +173,8 @@ class GeminiBackend:
                 record("vlm_rate_limit_retry", round=round_number,
                        provider=self.provider, model=self.model, delay_seconds=delay)
                 time.sleep(delay)
+        if response is None:
+            raise BackendRequestError(self.provider, 0, "transport_error")
         if not response.ok or not response.text:
             raise BackendRequestError(self.provider, response.status_code,
                                       _error_code(response))

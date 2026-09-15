@@ -31,8 +31,7 @@ class CompatibilityChecks(unittest.TestCase):
     def request(self, response):
         backend = OpenAIBackend(api_key="test-placeholder", model="test-model")
         payload = {"model": "test-model", "messages": [], "max_tokens": 2}
-        with patch('vlm_backends._requests', return_value=SimpleNamespace(
-                post=Mock(return_value=response))):
+        with patch('vlm_backends._post_json', return_value=response):
             return backend.request(payload, 1)
 
     def test_http_error_cannot_become_affirmative_evidence(self):
@@ -80,8 +79,7 @@ class CompatibilityChecks(unittest.TestCase):
             {"role":"system", "content":"prompt"},
             {"role":"user", "content":[{"type":"text", "text":"question"}]}],
             "max_tokens":50}
-        with patch('vlm_backends._requests', return_value=SimpleNamespace(
-                post=Mock(return_value=response))):
+        with patch('vlm_backends._post_json', return_value=response):
             self.assertEqual(backend.request(source, 1), "yes;no;skip")
 
     def test_gemini_retries_once_using_server_quota_delay(self):
@@ -96,7 +94,7 @@ class CompatibilityChecks(unittest.TestCase):
             {"role":"user", "content":[{"type":"text", "text":"question"}]}],
             "max_tokens":50}
         post = Mock(side_effect=[limited, success])
-        with patch('vlm_backends._requests', return_value=SimpleNamespace(post=post)), \
+        with patch('vlm_backends._post_json', post), \
              patch('vlm_backends.time.sleep') as sleep:
             self.assertEqual(backend.request(source, 1), "yes")
         sleep.assert_called_once_with(5.0)
