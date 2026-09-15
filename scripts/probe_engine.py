@@ -22,7 +22,7 @@ started = time.monotonic()
 def event(name, **fields):
     with (probe_dir / 'phases.jsonl').open('a') as output:
         output.write(json.dumps(dict(event=name, elapsed_seconds=time.monotonic()-started, **fields))+'\n')
-event('process_started')
+event('process_started', python_executable=sys.executable, python_version=sys.version)
 cache_root=Path(os.environ.get('VAPTAMP_PROBE_CACHE_ROOT',runtime/'cache'))
 portable_root=runtime/'kit-portable'
 if 'VAPTAMP_PROBE_CACHE_ROOT' in os.environ:
@@ -67,8 +67,27 @@ if os.getenv('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
                          'active_gpu': 0, 'physics_gpu': 0},
                         experience=str(runtime / 'native/isaac-sim/apps/omnigibson.kit'))
     event('native_without_og_ready')
-    for _ in range(5):
+    import omni.replicator.core as rep
+    import numpy as np
+    product = rep.create.render_product('/OmniverseKit_Persp', (64, 64))
+    rgb_annotator = rep.AnnotatorRegistry.get_annotator('rgb')
+    rgb_annotator.attach([product])
+    for _ in range(10):
         app.update()
+    rgb = np.asarray(rgb_annotator.get_data())
+    assert rgb.ndim == 3 and rgb.shape[:2] == (64, 64) and rgb.shape[2] >= 3, rgb.shape
+    rgb = rgb[..., :3]
+    assert np.isfinite(rgb).all()
+    np.save(probe_dir / 'native_rgb.npy', rgb)
+    event('native_rgb_saved', shape=list(rgb.shape))
+    from omni.isaac.core import SimulationContext
+    context = SimulationContext()
+    context.initialize_physics()
+    context.play()
+    context.step(render=True)
+    assert context.current_time > 0
+    event('native_physics_stepped', time=context.current_time)
+    context.stop()
     event('shutdown_started')
     app.close()
     event('shutdown_completed')

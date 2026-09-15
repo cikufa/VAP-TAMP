@@ -110,6 +110,8 @@ def main():
         report['success']=child.returncode==0 and 'shutdown_completed' in phase and (not args.task or 'camera_ready' in phase)
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1':
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
+        if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
+            report['success'] = report['success'] and all(name in phase for name in ('native_rgb_saved', 'native_physics_stepped'))
         report['native_trace_sha256']=hashlib.sha256((out/'native_stage_trace.py').read_bytes()).hexdigest()
         after=external_snapshot()
         report['external_file_changes']=[p for p in set(before)|set(after) if before.get(p)!=after.get(p)]
