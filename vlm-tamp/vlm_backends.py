@@ -3,12 +3,17 @@ import base64
 import os
 import re
 
-import requests
-
-
 DEFAULT_PROVIDER = "gemini"
 DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 DEFAULT_OPENAI_MODEL = "gpt-4o-2024-05-13"
+
+
+def _requests():
+    # Import only when the first VLM call is made. Importing Conda's urllib3
+    # before Kit starts makes Isaac's vendored botocore bind to an incompatible
+    # ssl_ module during Replicator initialization.
+    import requests
+    return requests
 
 
 class BackendRequestError(RuntimeError):
@@ -42,7 +47,7 @@ class OpenAIBackend:
         payload = dict(chat_input, model=self.model)
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, payload=payload)
-        response = requests.post(
+        response = _requests().post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Content-Type": "application/json",
                      "Authorization": f"Bearer {self.api_key}"},
@@ -116,7 +121,7 @@ class GeminiBackend:
         payload = self._convert(chat_input)
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, source_contract=chat_input, payload=payload)
-        response = requests.post(
+        response = _requests().post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
             headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
             json=payload, timeout=60,
