@@ -12,7 +12,7 @@ active_perception = ActivePerceptionModule(
     use_ur5e=True  # Use UR5e + Segway robot
 )
 
-vlm = GeminiAPIAgent(api_key="AIzaSyAUW49iYmd6T_ayI64393QD8s1jB-MSVts")
+vlm = GeminiAPIAgent(api_key=__import__("os").environ.get("GEMINI_API_KEY", ""))
 
 # Test predicates
 test_cases = [

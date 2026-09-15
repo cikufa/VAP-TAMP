@@ -25,7 +25,7 @@ class DKPromptExecutor:
         self.base = SegbotController()
 
         # Gemini API key (only needed if using VLM View Guide)
-        GEMINI_API_KEY = "AIzaSyAUW49iYmd6T_ayI64393QD8s1jB-MSVts"
+        GEMINI_API_KEY = __import__("os").environ.get("GEMINI_API_KEY", "")
 
         self.arm = UR5eController(
             use_vlm_view_guide=use_vlm_view_guide,
@@ -662,7 +662,7 @@ Examples:
             return "UNKNOWN"
 
         # Create VLM instance with FRONT camera (not wrist camera)
-        GEMINI_API_KEY = "AIzaSyAUW49iYmd6T_ayI64393QD8s1jB-MSVts"
+        GEMINI_API_KEY = __import__("os").environ.get("GEMINI_API_KEY", "")
         door_vlm = VLMViewGuide(
             gemini_api_key=GEMINI_API_KEY,
             camera_topic='/camera/color/image_raw'  # Front camera for navigation
