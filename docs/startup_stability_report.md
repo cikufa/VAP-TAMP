@@ -124,3 +124,12 @@ found external OptiX cache and telemetry runtime files missed by the earlier
 home-directory monitoring; both locations are now redirected into the project.
 The prior fresh-cache probe therefore did not isolate OptiX cache state.
 Baseline remains FAIL; root cause is not yet established.
+
+## Resolved: per-user inotify watch exhaustion
+
+The renderer stall is fixed; see [renderer_fix.md](renderer_fix.md). Excluding
+project `.runtime` trees from VS Code file watching reduced one watcher process
+from 42,559 watches to 790, freeing the exhausted 65,536-watch quota. The unchanged
+OG/Kit/driver stack then passed native RGB/physics and minimal OG/Rs_int checks.
+Bringing-water environment construction passes; acceptance stopped at an empty
+semantic camera buffer on reset. No host driver/sysctl/package change was needed.

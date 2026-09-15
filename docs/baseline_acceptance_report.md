@@ -10,8 +10,8 @@ This is not exact task-level reproduction of the paper.
 
 | Required gate | Result | Evidence / remaining work |
 | --- | --- | --- |
-| Simulator stable | FAIL | 0/5 sequential launches pass; 900 s fresh-cache and import-order follow-ups also fail (startup_stability_report.md) |
-| Original/released task loads | FAIL (not demonstrated) | Supplied cached task exists and object names match PDDL; scene loading not reached |
+| Simulator startup / minimal rendering | PASS, bounded checks | Inotify quota fixed via project watcher exclusion. Native RGB/physics, minimal OG and Rs_int scene checks pass; see renderer_fix.md |
+| Alternative released task loads | PASS, construction only | bringing_water / Wainscott_0_garden environment constructed; next camera-reset gate fails on empty semantic buffer (renderer_fix.md) |
 | Planner works | PASS, symbolic scope | Released wrapper yields 8 actions / 9 states; VAL certifies bringing_water plan |
 | VLM works | FAIL (not demonstrated) | Exact gpt-4-turbo retained; OPENAI_API_KEY absent; no authenticated call |
 | Predicates verified | FAIL (not demonstrated in simulator) | Extraction passes planner check; no real image/query evidence |
@@ -22,7 +22,7 @@ This is not exact task-level reproduction of the paper.
 | Video/logging works | FAIL (partial logging only) | Probe logs and JSON timings exist; no task video |
 
 FAIL (not demonstrated) is an evidence gate, not evidence that the method is
-scientifically ineffective. Startup failures precede VAP-TAMP execution.
+scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP acceptance remains separate.
 
 ## Evidence
 
@@ -35,7 +35,7 @@ scientifically ineffective. Startup failures precede VAP-TAMP execution.
 
 ## Remaining acceptance sequence
 
-1. Resolve and repeat sequential startup/scene/camera checks.
+1. Resolve the empty first segmentation frame at robot/camera reset; native startup, minimal OG, Rs_int, and bringing_water construction now pass.
 2. Authenticate exact model and run one debug trial on the alternative released task.
 3. Validate the general paper algorithm separately from the fixed-view release:
    five paraphrases, majority vote, sufficiency, VLM direction, actual new sensor
@@ -51,8 +51,8 @@ scientifically ineffective. Startup failures precede VAP-TAMP execution.
 ## Checkpoint interpretation
 
 The missing Ihlen file no longer blocks selection of an alternative released
-task. The current blockers are native material-system initialization and absent
-local VLM credentials. No full debug trial or 3–5-trial pilot can be claimed.
+task. Native material-system initialization is fixed by freeing the user inotify watch quota.
+End-to-end acceptance and local VLM credentials remain outstanding. No full debug trial or 3–5-trial pilot can be claimed.
 Twelve unit tests pass (seven compatibility/security, five paper control flow),
 but all runtime algorithmic gates above remain unvalidated. No trial videos
 exist. The requested passing-baseline commit must wait for actual evidence.

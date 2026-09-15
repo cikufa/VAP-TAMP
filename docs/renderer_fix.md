@@ -56,3 +56,32 @@ retained as a diagnostic option and is not required by the fix.
 
 Image source/download/execution helpers: `prepare_og_image.py`, `run_og_image.py`,
 `image_renderer_smoke.py`. Original downloaded assets and caches were retained.
+
+## Incremental OmniGibson checks
+
+* Minimal native OG `Scene`, procedural cube/floor: PASS,
+  `results/original/startup/20260915T192913369818Z`; 1280×720 RGB, ten simulation
+  steps, exit 0, 20.17 s including launcher cleanup.
+* BEHAVIOR dataset `Rs_int`, floors/walls only, no robot/task: PASS,
+  `results/original/startup/20260915T193005533082Z`; 1280×720 RGB, ten simulation
+  steps, exit 0, 20.21 s including cleanup. This is a scene smoke test, not a task episode.
+
+These OG checks used the existing default-disabled extension watcher; freeing
+quota was sufficient for the renderer's own material file watching. No engine
+version, GPU driver, or VAP-TAMP algorithm modification was needed.
+* `bringing_water` / Wainscott_0_garden / cached Fetch: environment construction
+  PASS at 33.13 s in `results/original/startup/20260915T193132027868Z`.
+  **Stopped at robot/camera observation acceptance:** after dynamically adding
+  semantic/instance segmentation, `env.reset()` reads an empty semantic image;
+  `VisionSensor._remap_semantic_segmentation` → `Remapper.remap` → `np.max(image)`
+  raises `ValueError: zero-size array to reduction operation maximum which has
+  no identity`. No rendering/warmup step occurs between adding the modalities
+  and reset in this probe. A first-frame readiness problem is therefore the
+  leading diagnosis; no fabricated pixels or predicate observations were used.
+  The previous task probe (`20260915T193030683036Z`) failed without an emitted
+  traceback because native fast shutdown inside `finally` hid the exception.
+  Probes now persist exceptions before shutdown and explicitly reject runs
+  containing `probe_failed`, even when the native exit status is zero.
+
+No VAP-TAMP run, scripted primitive, scientific trial, or connector experiment
+was started. The renderer repair is separate from the remaining camera gate.

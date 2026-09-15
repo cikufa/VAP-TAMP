@@ -155,18 +155,23 @@ try:
         (probe_dir / 'scene_summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print('ORIGINAL_SCENE_CAMERA_OK', probe_dir, flush=True)
         event('camera_ready')
-    elif os.getenv('VAPTAMP_MINIMAL_SCENE') == '1':
+    elif os.getenv('VAPTAMP_MINIMAL_SCENE') == '1' or os.getenv('VAPTAMP_SCENE_MODEL'):
         import numpy as np
         from PIL import Image
         event('minimal_scene_loading')
-        env = og.Environment(configs={
+        minimal_config = {
             'scene': {'type': 'Scene', 'use_skybox': False},
             'objects': [{'type': 'PrimitiveObject', 'name': 'smoke_cube',
                          'primitive_type': 'Cube', 'size': 0.3,
                          'position': [0, 0, 0.5], 'rgba': [1, 0, 0, 1]}],
             'robots': [],
-        })
-        event('minimal_scene_loaded')
+        }
+        if os.getenv('VAPTAMP_SCENE_MODEL'):
+            minimal_config['scene'] = dict(type='InteractiveTraversableScene', scene_model=os.environ['VAPTAMP_SCENE_MODEL'], load_object_categories=['floors','walls'])
+            minimal_config['objects'] = []
+            event('behavior_scene_requested', config=minimal_config)
+        env = og.Environment(configs=minimal_config)
+        event('minimal_scene_loaded', objects=[obj.name for obj in env.scene.objects])
         env.reset()
         for index in range(10):
             event('simulation_step_enter', index=index)
@@ -180,6 +185,11 @@ try:
         event('minimal_rgb_saved', shape=list(rgb.shape), pixel_std=float(rgb.std()))
     else:
         event('scene_not_requested', reason='engine-only stability probe')
+except BaseException:
+    import traceback
+    event('probe_failed', traceback=traceback.format_exc())
+    traceback.print_exc()
+    raise
 finally:
     event('shutdown_started')
     og.shutdown()

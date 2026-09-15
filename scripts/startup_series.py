@@ -70,7 +70,7 @@ def main():
         before=external_snapshot()
         report=dict(index=i+1,launch_utc=datetime.now(timezone.utc).isoformat(),gpu_before_mib=gpu(),gpu_processes_before=gpu_processes(),gpu_samples=[],task=args.task)
         report['probe_source_sha256']=source_sha256
-        report['diagnostic_environment']={k:v for k,v in env.items() if k.startswith('VAPTAMP_NATIVE_') or k == 'VAPTAMP_MINIMAL_SCENE'}
+        report['diagnostic_environment']={k:v for k,v in env.items() if k.startswith('VAPTAMP_NATIVE_') or k in ('VAPTAMP_MINIMAL_SCENE', 'VAPTAMP_SCENE_MODEL')}
         report['cache_root']=env.get('VAPTAMP_PROBE_CACHE_ROOT','existing project cache')
         report['omp_num_threads']=env.get('OMP_NUM_THREADS','unset')
         report['diagnostic_async_loads']=env.get('VAPTAMP_PROBE_ASYNC_LOADS')=='1'
@@ -111,8 +111,8 @@ def main():
         # Isaac 2023.1.1 defaults to fast_shutdown=True: close() exits the process.
         # The parent must observe exit status; code following close() need not run.
         report['shutdown_observed'] = child.returncode == 0 and not timed_out and 'shutdown_started' in phase and ('shutdown_completed' in phase or 'Simulation App Shutting Down' in terminal_text)
-        report['success']=report['shutdown_observed'] and (not args.task or 'camera_ready' in phase)
-        if env.get('VAPTAMP_MINIMAL_SCENE') == '1':
+        report['success']=report['shutdown_observed'] and 'probe_failed' not in phase and (not args.task or 'camera_ready' in phase)
+        if env.get('VAPTAMP_MINIMAL_SCENE') == '1' or env.get('VAPTAMP_SCENE_MODEL'):
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
             report['success'] = report['success'] and all(name in phase for name in ('native_rgb_saved', 'native_physics_stepped'))
