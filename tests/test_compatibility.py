@@ -9,7 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 import sys
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'vlm-tamp'))
@@ -40,6 +40,12 @@ class CompatibilityChecks(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "HTTP 200"):
             self.request(SimpleNamespace(ok=True, text="", status_code=200))
 
+    def test_error_body_cannot_echo_credential_into_trace(self):
+        with patch('repro_trace.record') as record:
+            with self.assertRaises(RuntimeError):
+                self.request(SimpleNamespace(ok=False,text='Invalid key test-placeholder',status_code=401))
+        self.assertNotIn('test-placeholder',record.call_args_list[-1].kwargs['body'])
+
     def test_successful_answers_are_preserved(self):
         response = SimpleNamespace(ok=True, text="response", status_code=200,
                                    json=lambda: {"choices": [{"message": {"content": "yes;no;skip"}}]})
@@ -60,10 +66,17 @@ class CompatibilityChecks(unittest.TestCase):
         env = SimpleNamespace(task=SimpleNamespace(object_scope={
             "target": SimpleNamespace(wrapped_obj=SimpleNamespace(name="stick"))}))
         function = load_definition("vlm-tamp/eval.py", "inview", {
-            "robot": robot, "env": env, "np": SimpleNamespace(unique=lambda a: set(a))})
+            "robot": robot, "env": env, "np": SimpleNamespace(unique=lambda a: set(a)),
+            '_fpv_camera_key': load_definition('vlm-tamp/eval.py','_fpv_camera_key',{})})
         self.assertTrue(function("target"))
         env.task.object_scope["target"].wrapped_obj.name = "other-stick"
         self.assertFalse(function("target"))
+
+    def test_cached_robot_camera_uses_registry_name(self):
+        choose=load_definition('vlm-tamp/eval.py','_fpv_camera_key',{})
+        self.assertEqual(choose({'robot0:eyes:Camera:0':{}}),'robot0:eyes:Camera:0')
+        with self.assertRaises(RuntimeError):
+            choose({'robot0:eyes:Camera:0':{},'robot0:wrist:Camera:0':{}})
 
 
 if __name__ == "__main__":

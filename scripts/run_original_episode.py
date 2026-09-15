@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import resource
+import signal
 import subprocess
 import sys
 import time
@@ -19,6 +20,7 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--timeout-seconds", type=int, default=1200)
+    parser.add_argument('--task', choices=['store_firewood','bringing_water'], default='store_firewood')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     prefix = root / ".runtime/envs/vaptamp-repro"
@@ -30,9 +32,10 @@ def main():
         raise RuntimeError("OPENAI_API_KEY is missing; no episode has been started")
     if not os.getenv("EXP_PATH"):
         raise RuntimeError("Source scripts/engine_runtime.sh before launching")
-    if not (root / ".runtime/data/og_dataset/scenes/Ihlen_0_int").is_dir():
+    scene = {'store_firewood':'Ihlen_0_int','bringing_water':'Wainscott_0_garden'}[args.task]
+    if not (root / '.runtime/data/og_dataset/scenes' / scene).is_dir():
         raise RuntimeError("Original scene assets are not installed")
-    cached_task = root / '.runtime/data/og_dataset/scenes/Ihlen_0_int/json/Ihlen_0_int_task_store_firewood_0_0_template.json'
+    cached_task = root / '.runtime/data/og_dataset/scenes' / scene / 'json' / f'{scene}_task_{args.task}_0_0_template.json'
     if not cached_task.is_file():
         raise RuntimeError('Released offline firewood task instance is absent; no resampling or scene substitution performed')
     if args.trials < 1 or args.trials > 5:
@@ -44,6 +47,7 @@ def main():
     env = os.environ.copy()
     env.update({
         "VAPTAMP_NUM_TRIALS": str(args.trials), "VAPTAMP_SEED": str(args.seed),
+        "VAPTAMP_TASK": args.task,
         "VAPTAMP_CHECK_PRECONDITION": "1", "VAPTAMP_CHECK_EFFECT": "1",
         "VAPTAMP_CHECK_IN_NL": "0", "VAPTAMP_VLM_PLANNING": "0",
         "VAPTAMP_LOG_DIR": str(out / "artifacts"),
@@ -51,7 +55,8 @@ def main():
         "OMNIGIBSON_HEADLESS": "True",
     })
     metadata = {
-        "status": "running", "task": "store_firewood", "seed": args.seed,
+        "status": "running", "task": args.task, "scene": scene, "seed": args.seed,
+        "fidelity": 'released_default' if args.task=='store_firewood' else 'alternative_released_task_with_cached_scene_deviation',
         "trials": args.trials, "model": "gpt-4-turbo", "active_view_motion": False,
         "precondition_verification": True, "effect_verification": True,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
@@ -74,13 +79,25 @@ def main():
     started = time.monotonic()
     print("Episode artifacts:", out, flush=True)
     with (out / "terminal.log").open("w") as log:
+        child = subprocess.Popen(command, cwd=out, env=env, stdout=log,
+                                 stderr=subprocess.STDOUT, start_new_session=True)
         try:
-            result = subprocess.run(command, cwd=out, env=env, stdout=log,
-                                    stderr=subprocess.STDOUT, timeout=args.timeout_seconds)
-            metadata.update(status="process_exited", exit_code=result.returncode)
+            child.wait(timeout=args.timeout_seconds)
+            metadata.update(status="process_exited", exit_code=child.returncode)
         except subprocess.TimeoutExpired:
             metadata.update(status="timeout", exit_code=None)
+            os.killpg(child.pid, signal.SIGTERM)
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait()
         finally:
+            from startup_series import processes
+            if processes(child.pid):
+                os.killpg(child.pid, signal.SIGKILL)
+                time.sleep(2)
+            metadata['remaining_processes'] = processes(child.pid)
             metadata["wall_seconds"] = time.monotonic() - started
             (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print("Process status:", metadata["status"], metadata["exit_code"])

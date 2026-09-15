@@ -7,9 +7,13 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import argparse
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--task',choices=['store_firewood','bringing_water'],default='store_firewood')
+    args=parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     expected_python = root / ".runtime/envs/vaptamp-repro/bin/python"
     if Path(sys.prefix).resolve() != expected_python.parent.parent.resolve():
@@ -24,8 +28,8 @@ def main():
     sys.path.insert(0, str(source))
     from pddl_sim import pddlsim
 
-    domain = source / "domains/store_firewood/domain.pddl"
-    problem = source / "domains/store_firewood/problem.pddl"
+    domain = source / 'domains' / args.task / 'domain.pddl'
+    problem = source / 'domains' / args.task / 'problem.pddl'
     planner = pddlsim(str(domain))
     previous = Path.cwd()
     log = io.StringIO()
@@ -47,8 +51,10 @@ def main():
                     "state_before": states[index],
                     "state_after": states[index + 1],
                 })
-            for item in (2, 3):
-                goal = f"(ontop wooden_stick-n-01_{item} table-n-02_1)"
+            goals = ([f"(ontop wooden_stick-n-01_{item} table-n-02_1)" for item in (2,3)]
+                     if args.task=='store_firewood' else
+                     [f"(onfloor water_bottle-n-01_{item} floor-n-01_1)" for item in (1,2)])
+            for goal in goals:
                 if goal not in states[-1]:
                     raise RuntimeError(f"Missing goal in final symbolic state: {goal}")
             validate = subprocess.run([
@@ -61,7 +67,7 @@ def main():
             result = {
                 "status": "passed",
                 "scope": "symbolic planner smoke only; no physics, images or VLM",
-                "task": "store_firewood", "plan_length": len(plan),
+                "task": args.task, "plan_length": len(plan),
                 "intermediate_state_count": len(states), "trace": trace,
             }
             (out / "summary.json").write_text(json.dumps(result, indent=2) + "\n")

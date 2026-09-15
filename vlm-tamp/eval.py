@@ -325,8 +325,18 @@ def _observation_data(observation):
     return observation[0] if isinstance(observation, tuple) else observation
 
 
+def _fpv_camera_key(data):
+    if 'fetch:eyes_Camera_sensor' in data:
+        return 'fetch:eyes_Camera_sensor'
+    cameras = [name for name in data if ':Camera:' in name]
+    if len(cameras) != 1:
+        raise RuntimeError('Expected exactly one Fetch first-person camera; inspect sensor registry')
+    return cameras[0]
+
+
 def get_fpv_rgb():
-    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["rgb"]
+    data = _observation_data(robot.get_obs())
+    return data[_fpv_camera_key(data)]["rgb"]
 
 
 def get_tpv_rgb():
@@ -334,11 +344,13 @@ def get_tpv_rgb():
 
 
 def get_seg_semantic():
-    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["seg_semantic"]
+    data = _observation_data(robot.get_obs())
+    return data[_fpv_camera_key(data)]["seg_semantic"]
 
 
 def get_seg_instance():
-    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["seg_instance"]
+    data = _observation_data(robot.get_obs())
+    return data[_fpv_camera_key(data)]["seg_instance"]
 
 
 def rotate_x(initial_quaternion, angle_degrees):
@@ -376,7 +388,7 @@ def inview(obj_name):
     if isinstance(observation, tuple):
         # OG 1.0.0 IDs are a registry, not indices into scene.objects.
         data, info = observation
-        camera = "fetch:eyes_Camera_sensor"
+        camera = _fpv_camera_key(data)
         labels = info[camera]["seg_instance"]
         visible = any(labels.get(int(value)) == obj.name
                       for value in np.unique(data[camera]["seg_instance"]))
@@ -1159,6 +1171,12 @@ config["scene"]["not_load_object_categories"] = ["ceilings"]
 
 a_name = "store_firewood"
 config["scene"]["scene_model"] = "Ihlen_0_int"
+# Explicit alternative released-task validation; original defaults remain intact.
+if os.getenv('VAPTAMP_TASK') == 'bringing_water':
+    a_name = 'bringing_water'
+    config['scene']['scene_model'] = 'Wainscott_0_garden'
+elif os.getenv('VAPTAMP_TASK', 'store_firewood') != 'store_firewood':
+    raise ValueError('Unsupported reproduction task')
 
 #########################################################################################
 
@@ -1194,6 +1212,10 @@ while trial_counter < NUM_TRIALS:
     env.load()
     scene = env.scene
     robot = env.robots[0]
+    # Offline caches embed their own robot config and bypass the YAML robot.
+    # Add only the segmentation already required by the released primitives.
+    for modality in ('seg_semantic', 'seg_instance'):
+        robot.add_obs_modality(modality)
 
     robot_init_z = robot.get_position()[2]
     # Allow user to move camera more easily

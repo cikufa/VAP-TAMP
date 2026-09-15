@@ -3,23 +3,42 @@ import os
 from pathlib import Path
 import sys
 import argparse
+import time
+import json
+import faulthandler
 from datetime import datetime, timezone
 
 root = Path(os.environ["VAPTAMP_ROOT"])
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--original-scene', action='store_true')
+parser.add_argument('--task', choices=['bringing_water', 'halve_an_egg'])
 args = parser.parse_args()
 sys.argv = sys.argv[:1]
 runtime = root / ".runtime"
-probe_dir = runtime / "probes" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+probe_dir = Path(os.environ.get('VAPTAMP_PROBE_DIR', runtime / "probes" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")))
 probe_dir.mkdir(parents=True, exist_ok=False)
 print("Probe output:", probe_dir, flush=True)
+started = time.monotonic()
+def event(name, **fields):
+    with (probe_dir / 'phases.jsonl').open('a') as output:
+        output.write(json.dumps(dict(event=name, elapsed_seconds=time.monotonic()-started, **fields))+'\n')
+event('process_started')
+cache_root=Path(os.environ.get('VAPTAMP_PROBE_CACHE_ROOT',runtime/'cache'))
+portable_root=runtime/'kit-portable'
+if 'VAPTAMP_PROBE_CACHE_ROOT' in os.environ:
+    if not cache_root.resolve().is_relative_to(root):raise ValueError('Cache must remain project-local')
+    portable_root=cache_root/'kit-portable'
+    for key,subdir in [('XDG_CACHE_HOME','xdg'),('CUDA_CACHE_PATH','cuda'),('__GL_SHADER_DISK_CACHE_PATH','nvidia')]:
+        os.environ[key]=str(cache_root/subdir)
+        (cache_root/subdir).mkdir(parents=True,exist_ok=True)
+faulthandler.enable()
+faulthandler.dump_traceback_later(60, repeat=True)
 sys.argv += [
-    "--portable", "--portable-root", str(runtime / "kit-portable"),
+    "--portable", "--portable-root", str(portable_root),
     "--/app/settings/persistent=false", "--/app/settings/loadUserConfig=false",
     "--/app/extensions/fsWatcherEnabled=false",
     "--/structuredLog/logDirectory=" + str(runtime / "structured-logs"),
-    "--/app/tokens/omni_global_cache=" + str(runtime / "cache/omni"),
+    "--/app/tokens/omni_global_cache=" + str(cache_root / "omni"),
     "--/app/tokens/omni_global_logs=" + str(runtime / "structured-logs"),
     "--/app/tokens/omni_documents=" + str(runtime / "documents"),
     "--/app/tokens/shared_documents=" + str(runtime / "documents/shared"),
@@ -27,17 +46,32 @@ sys.argv += [
     "--/app/tokens/documents=" + str(runtime / "documents/app"),
     "--/log/file=" + str(probe_dir / "kit.log"),
 ]
+if os.getenv('VAPTAMP_PROBE_ASYNC_LOADS') == '1':
+    # Diagnostic only; never enabled by the baseline launcher.
+    sys.argv += ['--/rtx/materialDb/syncLoads=false',
+                 '--/rtx/hydra/materialSyncLoads=false',
+                 '--/omni.kit.plugin/syncUsdLoads=false']
+    event('diagnostic_async_loads_requested')
 
 import omnigibson as og
 from omnigibson.macros import gm
 
 gm.HEADLESS = True
+if args.original_scene or args.task:
+    gm.USE_GPU_DYNAMICS = True
+if os.getenv('VAPTAMP_PROBE_PRELOAD_TORCH') == '1':
+    # eval.py imports gpt4v/torchvision before creating its OG Environment.
+    import torch
+    import torchvision
+    event('ml_dependencies_preloaded',torch_version=torch.__version__,torch_file=torch.__file__)
 try:
+    event('engine_initializing')
     og.launch()
     for _ in range(5):
         og.app.update()
     print("NATIVE_ENGINE_LAUNCH_OK", flush=True)
-    if args.original_scene:
+    event('engine_initialized')
+    if args.original_scene or args.task:
         import yaml
         import json
         import numpy as np
@@ -47,18 +81,24 @@ try:
             for modality in ('seg_semantic', 'seg_instance'):
                 if modality not in robot_config['obs_modalities']:
                     robot_config['obs_modalities'].append(modality)
-        config['scene'].update(scene_model='Ihlen_0_int', load_task_relevant_only=True,
+        task = args.task or 'store_firewood'
+        scene = {'store_firewood':'Ihlen_0_int', 'bringing_water':'Wainscott_0_garden', 'halve_an_egg':'Rs_int'}[task]
+        config['scene'].update(scene_model=scene, load_task_relevant_only=True,
                                not_load_object_categories=['ceilings'])
-        config['task'] = dict(type='BehaviorTask', activity_name='store_firewood',
+        config['task'] = dict(type='BehaviorTask', activity_name=task,
                               activity_definition_id=0, activity_instance_id=0,
                               predefined_problem=None, online_object_sampling=False)
+        event('scene_loading', task=task, scene=scene)
         env = og.Environment(configs=config)
+        event('scene_loaded')
+        for modality in ('seg_semantic','seg_instance'):
+            env.robots[0].add_obs_modality(modality)
         env.reset()
         for _ in range(10):
             og.sim.step()
         robot = env.robots[0]
         obs, info = robot.get_obs()
-        summary = dict(kind='environment_probe_only', scene='Ihlen_0_int', task='store_firewood',
+        summary = dict(kind='environment_probe_only', scene=scene, task=task,
                        robot=robot.name, observations={}, object_names=[o.name for o in env.scene.objects])
         for sensor, data in obs.items():
             if isinstance(data, dict):
@@ -67,5 +107,11 @@ try:
                     Image.fromarray(np.asarray(data['rgb'])[..., :3].astype(np.uint8)).save(probe_dir / (sensor + '.png'))
         (probe_dir / 'scene_summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print('ORIGINAL_SCENE_CAMERA_OK', probe_dir, flush=True)
+        event('camera_ready')
+    else:
+        event('scene_not_requested', reason='engine-only stability probe')
 finally:
+    event('shutdown_started')
     og.shutdown()
+    event('shutdown_completed')
+    faulthandler.cancel_dump_traceback_later()

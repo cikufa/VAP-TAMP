@@ -87,3 +87,19 @@ removed the watcher errors but did not fix the stall. No probe processes remain.
 The five external log sizes/timestamps still match the post-first-launch values.
 Native startup remains intermittent and unresolved; a future session should
 collect a bounded debugger trace before attempting an episode.
+
+## Cached robot configuration follow-up
+
+The supplied alternative task JSON embeds Fetch `robot0` with RGB only.
+OG skips YAML robot creation when a cached scene already includes a robot.
+Therefore adding modalities only to YAML is insufficient. The evaluator now
+calls the robot's public `add_obs_modality` for the two segmentation channels
+already used by released primitives after each scene load. It resolves the sole
+camera's registry name instead of assuming the old `fetch:eyes_Camera_sensor`
+name; ambiguity raises an error. The old key remains supported. Registry-name
+and ambiguity tests pass; sensor operation still requires runtime validation.
+
+Credential handling now redacts an exact API-key echo from response trace bodies
+and avoids printing provider response bodies. Successful answer parsing is unchanged.
+Seven compatibility/security unit tests pass. The episode launcher now isolates
+and cleans its own process group on timeout, matching the startup harness.

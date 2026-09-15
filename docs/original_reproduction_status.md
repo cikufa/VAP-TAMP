@@ -84,3 +84,25 @@ images), response bodies/statuses, plans, verification inputs/outputs, symbolic
 updates and action boundaries. Authorization headers are never recorded.
 This instrumentation has not yet been exercised in a real episode; physical
 state snapshots, video assembly and full metric validation remain pending.
+
+## Revised validation scope (after c28bf5b)
+
+The user now authorizes method/pipeline validation on an alternative released
+task after a brief exhaustive public-artifact search. That search is complete:
+`missing_ihlen_instance_audit.md`. The default Ihlen configuration remains intact;
+Merom is not substituted. `bringing_water` with the supplied Wainscott cache is
+selected as the alternative candidate, with explicit initialization deviation.
+Its unchanged PDDL passes an 8-action / 9-state VAL-validated planner check.
+
+Five sequential startup attempts all exceeded 120 s before scene loading.
+See `startup_stability_report.md` for timestamps, GPU measurements, cleanup,
+native debugger traces and the longer warmup investigation. There is still no
+successful scene/camera or full task episode. OpenAI key remains absent.
+
+`paper_verification.py` now implements and unit-tests the general Algorithm 2
+control flow; real VLM/motion/observation integration is not yet validated.
+This is separate from the released fixed-view simulation and is not enabled
+in the baseline launcher. See `paper_active_perception_integration.md`.
+
+The authoritative acceptance gate is `baseline_acceptance_report.md` (currently
+FAIL). Neither an acceptance commit nor connector implementation exists.

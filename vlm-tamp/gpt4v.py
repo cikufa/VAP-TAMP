@@ -83,13 +83,14 @@ class GPT4VAgent:
             timeout=60,
         )
         record('vlm_response', round=self.current_round,
-               http_status=response.status_code, body=response.text)
+               http_status=response.status_code,
+               body=response.text.replace(self.api_key, '[REDACTED_API_KEY]'))
         if not response.ok or not response.text:
             # API/transport failure is not affirmative visual evidence. Do not
             # include headers or raw request objects in this exception.
             raise RuntimeError(f"GPT4V API request failed (HTTP {response.status_code})")
         json_res = response.json()
-        print(f">>>>>> the original output from gpt4v is: {json_res} >>>>>>>>>")
+        print('GPT4V response received')
         if "choices" in json_res:
             res = json_res["choices"][0]["message"]["content"]
         elif "error" in json_res:
