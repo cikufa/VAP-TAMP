@@ -1,5 +1,4 @@
 from PIL import Image
-from torchvision import transforms
 import base64
 import io
 import numpy as np
@@ -13,7 +12,6 @@ class GPT4VAgent:
         self.backend = build_backend()
         self.max_tokens = 50
         # self.temperature = self.cfg["temperature"]
-        self.to_pil = transforms.ToPILImage()
         self.errors = {}
         self.responses = {}
         self.current_round = 0
