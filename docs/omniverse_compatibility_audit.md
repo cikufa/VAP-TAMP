@@ -214,3 +214,13 @@ the user's ordered acceptance layers, stopping at the first failure.
 Local machine/version evidence: `results/original/compatibility_audit/facts.json`.
 Validation: diagnostic Python syntax, shell syntax, and `git diff --check`; no
 scientific result is implied by these checks.
+
+## Resolved after this audit
+
+See [renderer_fix.md](renderer_fix.md). Exhausted per-user inotify watches caused
+the startup stall. Excluding project `.runtime` trees from VS Code watching freed
+the quota; the unchanged OG/Kit/580.105.08 stack then rendered RGB, stepped physics,
+and exited with status 0. A driver or simulator upgrade is not needed for this
+failure. The historical compatibility caveats above remain historical evidence,
+but the earlier container-test recommendation is superseded by the demonstrated
+project-local watch-exclusion fix.

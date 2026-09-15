@@ -36,7 +36,7 @@ faulthandler.dump_traceback_later(60, repeat=True)
 sys.argv += [
     "--portable", "--portable-root", str(portable_root),
     "--/app/settings/persistent=false", "--/app/settings/loadUserConfig=false",
-    "--/app/extensions/fsWatcherEnabled=false",
+    "--/app/extensions/fsWatcherEnabled=" + ("true" if os.getenv("VAPTAMP_NATIVE_WATCHERS") == "1" else "false"),
     "--/structuredLog/logDirectory=" + str(runtime / "structured-logs"),
     "--/app/tokens/omni_global_cache=" + str(cache_root / "omni"),
     "--/app/tokens/omni_global_logs=" + str(runtime / "structured-logs"),
@@ -67,30 +67,33 @@ if os.getenv('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
                          'active_gpu': 0, 'physics_gpu': 0},
                         experience=str(runtime / 'native/isaac-sim/apps/omnigibson.kit'))
     event('native_without_og_ready')
-    import omni.replicator.core as rep
-    import numpy as np
-    product = rep.create.render_product('/OmniverseKit_Persp', (64, 64))
-    rgb_annotator = rep.AnnotatorRegistry.get_annotator('rgb')
-    rgb_annotator.attach([product])
-    for _ in range(10):
-        app.update()
-    rgb = np.asarray(rgb_annotator.get_data())
-    assert rgb.ndim == 3 and rgb.shape[:2] == (64, 64) and rgb.shape[2] >= 3, rgb.shape
-    rgb = rgb[..., :3]
-    assert np.isfinite(rgb).all()
-    np.save(probe_dir / 'native_rgb.npy', rgb)
-    event('native_rgb_saved', shape=list(rgb.shape))
-    from omni.isaac.core import SimulationContext
-    context = SimulationContext()
-    context.initialize_physics()
-    context.play()
-    context.step(render=True)
-    assert context.current_time > 0
-    event('native_physics_stepped', time=context.current_time)
-    context.stop()
-    event('shutdown_started')
-    app.close()
-    event('shutdown_completed')
+    try:
+        import omni.replicator.core as rep
+        import numpy as np
+        product = rep.create.render_product('/OmniverseKit_Persp', (64, 64))
+        rgb_annotator = rep.AnnotatorRegistry.get_annotator('rgb')
+        rgb_annotator.attach([product])
+        for _ in range(10):
+            app.update()
+        rep.orchestrator.step(rt_subframes=4)
+        rgb = np.asarray(rgb_annotator.get_data())
+        assert rgb.ndim == 3 and rgb.shape[:2] == (64, 64) and rgb.shape[2] >= 3, rgb.shape
+        rgb = rgb[..., :3]
+        assert np.isfinite(rgb).all()
+        np.save(probe_dir / 'native_rgb.npy', rgb)
+        event('native_rgb_saved', shape=list(rgb.shape))
+        from omni.isaac.core import SimulationContext
+        context = SimulationContext()
+        context.initialize_physics()
+        context.play()
+        context.step(render=True)
+        assert context.current_time > 0
+        event('native_physics_stepped', time=context.current_time)
+        context.stop()
+    finally:
+        event('shutdown_started')
+        app.close()
+        event('shutdown_completed')
     sys.exit(0)
 
 import omnigibson as og

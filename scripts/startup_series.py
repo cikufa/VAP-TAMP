@@ -107,7 +107,11 @@ def main():
         report['process_to_engine_ready_seconds']=phase.get('engine_initialized')
         report['scene_load_seconds']=phase.get('scene_loaded',0)-phase['scene_loading'] if 'scene_loaded' in phase else None
         report['scene_status']='not_requested' if not args.task else ('loaded' if 'scene_loaded' in phase else 'not_reached_or_failed')
-        report['success']=child.returncode==0 and 'shutdown_completed' in phase and (not args.task or 'camera_ready' in phase)
+        terminal_text=(out/f'probe_{i+1}.log').read_text(errors='replace')
+        # Isaac 2023.1.1 defaults to fast_shutdown=True: close() exits the process.
+        # The parent must observe exit status; code following close() need not run.
+        report['shutdown_observed'] = child.returncode == 0 and not timed_out and 'shutdown_started' in phase and ('shutdown_completed' in phase or 'Simulation App Shutting Down' in terminal_text)
+        report['success']=report['shutdown_observed'] and (not args.task or 'camera_ready' in phase)
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1':
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
