@@ -34,7 +34,7 @@ the broken helper. Full baseline acceptance remains incomplete.
 | Environment | OmniGibson/BEHAVIOR, no version pins | Incomplete Python 3.9 / torch 1.12.1 env | Python 3.10 planner-only prefix; OG 1.0.0 candidate | D | Provisioning only | Historical native engine uses Python 3.10 |
 | Original simulator | Five household tasks | Fetch / Ihlen / store_firewood default | Not launched | E | No | Engine, assets and credentials gate |
 | Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Intended: both true, classical planning, NL false | B | Flags parameterized; no episode yet | Upstream defaults select another strategy |
-| Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses OpenAI gpt-4-turbo | Gemini Developer API, gemini-3.6-flash free tier; same prompts, 256x256 PNG and semicolon parsing | D; image request passed, episode pending | Yes | Released model unavailable and OpenAI credit exhausted; explicit provider/model substitution |
+| Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses OpenAI gpt-4-turbo | Gemini Developer API, gemini-3.5-flash-lite free tier; same prompts, 256x256 PNG and semicolon parsing | D; image request passed, episode pending | Yes | Released model unavailable and OpenAI credit exhausted; explicit provider/model substitution |
 | Real VLM | Gemini Vision family, no endpoint ID | Gemini 2.0 flash exp in real executor / VLMViewGuide; optional Vertex 1.0 Pro Vision; offline map planner now Gemini 2.5 Flash | Not run | D/E | No model change | Cannot infer which exact endpoint produced published trials |
 | Credentials | Not method logic | Two embedded credential literals found | Environment-variable reads replace both | B | Yes | Never use embedded upstream credentials |
 | Primitive execution | Parameterized motion library | Teleport base/object, set states, gravity toggles | No physics execution | E | No | Native release must be reproduced before changes |
@@ -71,7 +71,7 @@ two-stage random draw agrees with the paper's 10% held-object-drop entry.
 
 - `vlm-tamp/gpt4v.py` retains the released prompt preparation and parsing;
   `vlm-tamp/vlm_backends.py` supplies modular Gemini and OpenAI transports.
-  The active substitution is Gemini 3.6 Flash with 256x256 input and 50 output
+  The active substitution is Gemini 3.5 Flash-Lite with 256x256 input and 50 output
   tokens for verification. See `gemini_backend_substitution.md`.
 - `vlm-tamp/gemini.py`: Vertex `gemini-1.0-pro-vision`, hard-coded cloud project,
   and constructor invoked at module import even when GPT is selected. Remove

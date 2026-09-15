@@ -16,7 +16,7 @@ This is not exact task-level reproduction of the paper.
 | Head lookat primitive | PASS | Fetch compatibility adapter validated against physical camera pose and joint limits; see fetch_head_compatibility.md |
 | Task manipulation primitives | PASS, execution infrastructure only | Eight-action scripted replay completes; four navigation calls find valid poses and one bottle is grasped/placed. A second grasp fails its released visibility precondition; recovery needs the VLM loop |
 | Planner works | PASS, symbolic scope | Released wrapper yields 8 actions / 9 states; VAL certifies bringing_water plan |
-| VLM works | PASS (provider/model deviation) | Gemini 3.6 Flash free-tier image request returns HTTP 200 and exact requested text; prompts/input/parsing preserved through a modular adapter. See gemini_backend_substitution.md |
+| VLM works | PASS (provider/model deviation) | Gemini free-tier image requests pass; active Gemini 3.5 Flash-Lite preserves prompts/input/parsing through a modular adapter. See gemini_backend_substitution.md |
 | Predicates verified | FAIL (not demonstrated in simulator) | Extraction passes planner check; no real image/query evidence |
 | State updates work | FAIL (not demonstrated end to end) | Released update code retained, event logging present; no live discrepancy |
 | Replanning works | FAIL (not demonstrated end to end) | Planner smoke is not a discrepancy/recovery episode |

@@ -23,7 +23,7 @@ def save_key(path, key):
         os.close(fd)
     set_key(str(path), "GEMINI_API_KEY", key, quote_mode="always")
     set_key(str(path), "VAPTAMP_VLM_PROVIDER", "gemini", quote_mode="never")
-    set_key(str(path), "VAPTAMP_GEMINI_MODEL", "gemini-3.6-flash", quote_mode="never")
+    set_key(str(path), "VAPTAMP_GEMINI_MODEL", "gemini-3.5-flash-lite", quote_mode="never")
     path.chmod(0o600)
 
 

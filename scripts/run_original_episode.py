@@ -34,7 +34,7 @@ def main():
     if provider == 'gemini':
         if not (os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')):
             raise RuntimeError("GEMINI_API_KEY is missing; no episode has been started")
-        model = os.getenv('VAPTAMP_GEMINI_MODEL', 'gemini-3.6-flash')
+        model = os.getenv('VAPTAMP_GEMINI_MODEL', 'gemini-3.5-flash-lite')
     elif provider == 'openai':
         if not os.getenv('OPENAI_API_KEY'):
             raise RuntimeError("OPENAI_API_KEY is missing; no episode has been started")
