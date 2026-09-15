@@ -13,6 +13,8 @@ class GPT4VAgent:
         self.prompt = "prompts.txt"
         self.planning_prompt = "planning_prompts.txt"
         self.api_key = os.getenv("OPENAI_API_KEY", "")
+        if not self.api_key:
+            raise RuntimeError("OPENAI_API_KEY must be configured for the released GPT4V path")
         self.max_tokens = 50
         # self.temperature = self.cfg["temperature"]
         self.to_pil = transforms.ToPILImage()
@@ -67,6 +69,9 @@ class GPT4VAgent:
         return chat_input
 
     def _request_gpt4v(self, chat_input, num_questions=-1):
+        from repro_trace import record
+        # Contains exact prompt and encoded model-input image, never auth headers.
+        record('vlm_request', round=self.current_round, payload=chat_input)
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -75,9 +80,14 @@ class GPT4VAgent:
             "https://api.openai.com/v1/chat/completions",
             headers=headers,
             json=chat_input,
+            timeout=60,
         )
-        if not response or response.text == "":
-            return ("yes;" * 5)[:-1], False
+        record('vlm_response', round=self.current_round,
+               http_status=response.status_code, body=response.text)
+        if not response.ok or not response.text:
+            # API/transport failure is not affirmative visual evidence. Do not
+            # include headers or raw request objects in this exception.
+            raise RuntimeError(f"GPT4V API request failed (HTTP {response.status_code})")
         json_res = response.json()
         print(f">>>>>> the original output from gpt4v is: {json_res} >>>>>>>>>")
         if "choices" in json_res:
@@ -92,7 +102,7 @@ class GPT4VAgent:
                 time.sleep(5)
                 return res, True
             elif json_res["error"]["code"] == "sanitizer_server_error":
-                return ("yes;" * 5)[:-1], False
+                raise RuntimeError("GPT4V API sanitizer failure")
             else:
                 raise RuntimeError
 

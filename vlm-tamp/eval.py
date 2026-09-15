@@ -18,7 +18,9 @@ from omnigibson.macros import gm
 from omnigibson.utils.constants import CLASS_NAME_TO_CLASS_ID
 from pddl_sim import pddlsim
 from gpt4v import GPT4VAgent
-from gemini import GeminiAgent
+from repro_trace import record
+# The optional Vertex Gemini wrapper constructs a cloud client at import time.
+# Do not import it on the released GPT4V path.
 
 # from omnigibson.action_primitives.starter_semantic_action_primitives import StarterSemanticActionPrimitives, StarterSemanticActionPrimitiveSet
 # Don't use GPU dynamics and use flatcache for performance boost
@@ -75,10 +77,19 @@ MAX_ATTEMPTS_FOR_SAMPLING_POSE_NEAR_OBJECT = 1000
 PICK_OBJ_HEIGHT = 1.15
 PLACE_ON_FLOOR_DIST = 1.5
 FALL_ON_FLOOR_DIST = 1.5
-NUM_TRIALS = 20
-CHECK_PRECONDITION = False
-CHECK_EFFECT = False
-CHECK_IN_NL = False
+def _repro_bool(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    if value not in ("0", "1"):
+        raise ValueError(f"{name} must be 0 or 1")
+    return value == "1"
+
+
+NUM_TRIALS = int(os.getenv("VAPTAMP_NUM_TRIALS", "20"))
+CHECK_PRECONDITION = _repro_bool("VAPTAMP_CHECK_PRECONDITION", False)
+CHECK_EFFECT = _repro_bool("VAPTAMP_CHECK_EFFECT", False)
+CHECK_IN_NL = _repro_bool("VAPTAMP_CHECK_IN_NL", False)
 MAX_NUM_ACTION = 50
 MAX_TELEPORT_DIST = 2.5
 MIN_TELEPORT_DIST = 1.0
@@ -96,10 +107,15 @@ PLACE_ON_FLOOR_SUCCESS_PROB = 0.8
 FALL_ON_GROUND_PROB_IF_FAILED = 0.5
 
 OPEN_FULLY = True
-LOG_DIR = "datadump/"
+LOG_DIR = os.getenv("VAPTAMP_LOG_DIR", "datadump/")
 
-VLM_PLANNING = True  # use VLM as the planner
+VLM_PLANNING = _repro_bool("VAPTAMP_VLM_PLANNING", True)
 is_oracle = False
+
+if "VAPTAMP_SEED" in os.environ:
+    # Controls released Python/NumPy random draws; not a physics determinism claim.
+    random.seed(int(os.environ["VAPTAMP_SEED"]))
+    np.random.seed(int(os.environ["VAPTAMP_SEED"]))
 
 vlm_agent = GPT4VAgent()
 # vlm_agent = GeminiAgent()
@@ -304,20 +320,25 @@ def _sample_pose_with_object_and_predicate(
     )
 
 
+def _observation_data(observation):
+    # OG 1.0.0 returns (observations, info); retain older dictionary support.
+    return observation[0] if isinstance(observation, tuple) else observation
+
+
 def get_fpv_rgb():
-    return robot.get_obs()["fetch:eyes_Camera_sensor"]["rgb"]
+    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["rgb"]
 
 
 def get_tpv_rgb():
-    return og.sim.viewer_camera.get_obs()["rgb"]
+    return _observation_data(og.sim.viewer_camera.get_obs())["rgb"]
 
 
 def get_seg_semantic():
-    return robot.get_obs()["fetch:eyes_Camera_sensor"]["seg_semantic"]
+    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["seg_semantic"]
 
 
 def get_seg_instance():
-    return robot.get_obs()["fetch:eyes_Camera_sensor"]["seg_instance"]
+    return _observation_data(robot.get_obs())["fetch:eyes_Camera_sensor"]["seg_instance"]
 
 
 def rotate_x(initial_quaternion, angle_degrees):
@@ -351,6 +372,16 @@ def rotate_z(initial_quaternion, angle_degrees):
 
 def inview(obj_name):
     obj = env.task.object_scope[obj_name].wrapped_obj
+    observation = robot.get_obs()
+    if isinstance(observation, tuple):
+        # OG 1.0.0 IDs are a registry, not indices into scene.objects.
+        data, info = observation
+        camera = "fetch:eyes_Camera_sensor"
+        labels = info[camera]["seg_instance"]
+        visible = any(labels.get(int(value)) == obj.name
+                      for value in np.unique(data[camera]["seg_instance"]))
+        print("object in view!!!!!" if visible else "object not in view")
+        return visible
     seg = get_seg_instance()
     instances = np.unique(seg)
     for instance_id in instances:
@@ -376,7 +407,7 @@ def run_sim(step=20):
     dummy_action = np.zeros((11))
     env.step(dummy_action)
     global sim_counter
-    Image.fromarray(og.sim.viewer_camera.get_obs()["rgb"], "RGBA").save(
+    Image.fromarray(get_tpv_rgb(), "RGBA").save(
         os.path.join(debug_path, str(sim_counter) + ".png")
     )
     sim_counter += 1
@@ -1069,6 +1100,13 @@ def check_states_and_update_problem(
     else:
         updated_problem_file = write_states_into_problem(states, previous_problem)
 
+    record('verification', trial=trial_counter, action_count=action_counter,
+           current_action=cur_action, next_action=next_action,
+           input_states=int_states, effects=effs, preconditions=pres,
+           visual_facts=valid_facts, questions=facts_nl, visual_answers=is_match_results,
+           ground_truth_facts=gt_facts, ground_truth_answers=gt_fact_results,
+           unmatched_effects=unmatched_effs, unmatched_preconditions=unmatched_pres,
+           updated_states=states, updated_problem=open(updated_problem_file).read())
     return (
         (is_state_updated_by_eff or is_state_updated_by_pre),
         updated_problem_file,
@@ -1094,6 +1132,13 @@ def log_writer(message, log_file):
 # config_filename = os.path.join(og.example_config_path, "tiago_primitives.yaml")
 config_filename = os.path.join(og.example_config_path, "fetch_behavior.yaml")
 config = yaml.load(open(config_filename, "r"), Loader=yaml.FullLoader)
+# The released visibility primitive requires segmentation, absent from OG 1.0's
+# default Fetch modalities. This preserves its existing ground-truth boundary.
+for robot_config in config["robots"]:
+    modalities = robot_config["obs_modalities"]
+    for modality in ("seg_semantic", "seg_instance"):
+        if modality not in modalities:
+            modalities.append(modality)
 config["scene"]["load_task_relevant_only"] = True
 config["scene"]["not_load_object_categories"] = ["ceilings"]
 
@@ -1127,12 +1172,7 @@ config["task"] = {
 }
 
 # initialize temp dump dir for visualization
-import shutil
 import os
-
-debug_path = "datadump/third_person"
-shutil.rmtree(debug_path, ignore_errors=True)
-os.makedirs(debug_path, exist_ok=True)
 
 init_problem_file = f"domains/{a_name}/problem.pddl"
 
@@ -1164,6 +1204,8 @@ while trial_counter < NUM_TRIALS:
 
     trial_dir = os.path.join(run_dir, str(trial_counter))
     os.makedirs(trial_dir, exist_ok=False)
+    debug_path = os.path.join(trial_dir, "third_person")
+    os.makedirs(debug_path, exist_ok=False)
     # env.reset()
     watch_robot()
 
@@ -1218,6 +1260,7 @@ while trial_counter < NUM_TRIALS:
         PICK_OBJ_HEIGHT = 2.8
 
     problem_file = init_problem_file
+    record('trial_start', trial=trial_counter, task=a_name)
     terminate = False
     invalid_epi = False
 
@@ -1228,6 +1271,8 @@ while trial_counter < NUM_TRIALS:
         else:
             plan = planner.plan(problem_file)
         print(f"Planning -- {plan}")
+        record('plan', trial=trial_counter, action_count=action_counter,
+               plan=plan, problem=open(problem_file).read())
         if not plan:
             break
 
@@ -1260,6 +1305,7 @@ while trial_counter < NUM_TRIALS:
             primitive = action[0]
             action_params = format_action_params(action)
             print(f"Executing action: {action}")
+            record('action_start', trial=trial_counter, action_count=action_counter, action=action)
             if primitive == "find":
                 # if not goto(action_params[1], oracle=is_oracle):
                 #     # there is something wrong with the skill, not the agent's fault
@@ -1295,6 +1341,7 @@ while trial_counter < NUM_TRIALS:
                 raise RuntimeError
 
             action_counter += 1
+            record('action_end', trial=trial_counter, action_count=action_counter, action=action)
 
             if action_counter > MAX_NUM_ACTION:
                 terminate = True
@@ -1435,6 +1482,8 @@ while trial_counter < NUM_TRIALS:
 
         with open("exp_results.json", "w") as f:
             json.dump(exp_results, f)
+        record('trial_end', trial=trial_counter, action_count=action_counter,
+               released_cumulative_results=exp_results)
         trial_counter += 1
 
 print("=" * 30)

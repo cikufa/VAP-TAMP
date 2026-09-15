@@ -100,6 +100,33 @@ After actual installation, export `environment.yml`, `requirements_frozen.txt`
 and a Conda explicit package list. `docs/environment_versions.md` must clearly
 distinguish planner-only provisioning from simulator provisioning.
 
+## Audit follow-up: source and engine acquisition
+
+The user approved the 22.32 GB dataset download, conditional on compatibility
+and disk checks. That approval is retained; do not ask again for the same bundle.
+
+The original NVIDIA container tag returned HTTP 404 after anonymous registry
+authentication. Stanford's official `stanfordvl/omnigibson:1.0.0` image remains
+available, built 2024-03-18, linux/amd64, compressed total 10,704,289,561 bytes.
+Its manifest digest is
+`sha256:8611bfe0507505d3c5fdaec07c272b12d2a1f8a0a75b73b177da751086f13503`.
+The original engine COPY layer is 8,937,203,082 bytes, digest
+`sha256:a1b1e92d5165bfe6d5ac68453c2bbbb4a000882bc453e35b4a714c8cdae1a2d4`.
+`scripts/fetch_historical_engine.py` downloads and verifies that archive only,
+within the project, without a Docker daemon or executing image build commands.
+Extracting the engine from this layer is an installation adaptation; later image
+layers modify gym/numpy packaging, click and livestream configuration and must
+be considered separately. It is not a full reconstruction of the Docker image.
+
+The OG source clone at the selected SHA confirms the requested symbols, but
+`Robot.get_obs()` returns `(observations, info)` while VAP-TAMP expects a dict.
+A documented observation-unpacking compatibility fix is needed. This reinforces
+that the exact original simulator commit remains unidentified.
+
+The inherited login environment includes ROS PYTHONPATH. The project runtime
+script now clears PYTHONPATH/PYTHONHOME and disables user site packages; exports
+and the passing planner check were regenerated with that isolation in effect.
+
 ## Sources
 
 - [Released environment](https://github.com/aoloo-r/VAP-TAMP/blob/39a52b0e10427ce91ddf3c1a177d3f4f782a61c3/vlm-tamp/env.yml)
@@ -107,3 +134,28 @@ distinguish planner-only provisioning from simulator provisioning.
 - [Pinned OG dependency metadata](https://github.com/StanfordVL/OmniGibson/blob/282adda4c2cdba4bc8d3c1a4b524d3ff94453f3a/setup.py)
 - [Native engine archived release notes](https://docs.isaacsim.omniverse.nvidia.com/4.0.0/archived_release_notes.html)
 - [Paper](https://arxiv.org/html/2604.26988v1), especially Section V-B.
+
+## Installed follow-up (2026-09-15)
+
+The native layer checksum passed and 18,916,022,685 regular-file bytes were
+extracted project-locally. Native VERSION: `2023.1.1-rc.8+2023.1.688.573e0291.tc`,
+Kit 105.1.2. Installed torch 2.0.1+cu118 / torchvision 0.15.2+cu118 match
+its metadata, with Python 3.10.21 and NumPy 1.23.5. CUDA arithmetic and two
+contained headless launches passed. No system CUDA or driver changes.
+
+The 663,239,083-byte asset archive passed MD5 verification and expanded to
+1,796,755,804 bytes. The approved dataset download passed its version-pinned
+MD5 check; archive inventory and free-space check precede extraction. The user
+explicitly accepted the bundled non-commercial academic research license; the
+key was installed under `.runtime/data` without logging its value.
+
+Observation tuple/segmentation compatibility changes are documented in
+`compatibility_fixes.md`. The first launch wrote five external NVIDIA logs,
+contrary to the project-only boundary. That incident was disclosed; structured
+logs and document/cache tokens are now redirected. No external files were
+deleted or restored.
+
+Dataset extraction completed: 28,572,351,606 regular-file bytes, 66,320 files;
+147,172,098,048 bytes were free before expansion. About 111 GiB remained
+after extraction. The default Ihlen firewood task cache is absent; see
+`asset_status.md`. Dataset installation alone is not baseline reproduction.

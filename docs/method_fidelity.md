@@ -17,7 +17,7 @@ class-C implementations yet. Pending work is not counted as a reconstruction.
 | PDDL parser | Action knowledge extraction | `pddl` package missing from env file | pddl 0.4.2; all original plan preconditions extracted | B | Dependency added | API checked by wrapper smoke |
 | Environment | OmniGibson/BEHAVIOR, no version pins | Incomplete Python 3.9 / torch 1.12.1 env | Python 3.10 planner-only prefix; OG 1.0.0 candidate | D | Provisioning only | Historical native engine uses Python 3.10 |
 | Original simulator | Five household tasks | Fetch / Ihlen / store_firewood default | Not launched | E | No | Engine, assets and credentials gate |
-| Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Intended: both true, classical planning, NL false | B pending | Not yet | HEAD defaults select another strategy |
+| Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Intended: both true, classical planning, NL false | B | Flags parameterized; no episode yet | Upstream defaults select another strategy |
 | Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses gpt-4-turbo | No queries; same endpoint intended | E | No substitution | Credentials absent |
 | Real VLM | Gemini Vision family, no endpoint ID | Gemini 2.0 flash exp in real executor / VLMViewGuide; optional Vertex 1.0 Pro Vision; offline map planner now Gemini 2.5 Flash | Not run | D/E | No model change | Cannot infer which exact endpoint produced published trials |
 | Credentials | Not method logic | Two embedded credential literals found | Environment-variable reads replace both | B | Yes | Never use embedded upstream credentials |
@@ -59,7 +59,7 @@ two-stage random draw agrees with the paper's 10% held-object-drop entry.
 - `vlm-tamp/gemini.py`: Vertex `gemini-1.0-pro-vision`, hard-coded cloud project,
   and constructor invoked at module import even when GPT is selected. Remove
   this optional import side effect before the GPT baseline, rather than requiring
-  unrelated Google credentials. No fix has yet been applied to eval.py.
+  unrelated Google credentials. The unused eager import has now been removed from eval.py.
 - [Google lifecycle](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/model-versions)
   lists `gemini-1.0-pro-vision-001` retirement on 2025-04-21.
 - `gemini_api.py` and `VLMViewGuide.py` default to `gemini-2.0-flash-exp`.
@@ -78,3 +78,11 @@ No task success estimate, failure rate, counterfactual benefit, or conclusion
 about prospective information acquisition is supported by this audit alone.
 In particular, original symbolic planning success cannot certify physics,
 camera visibility, insertion clearance, VLM behavior, or active perception.
+
+## Original task scoring discrepancy
+
+Pinned BDDL 3.5.0 `store_firewood/problem0.bddl` requires all three firewood
+objects on the table. The released PDDL problem contains goals for sticks 2
+and 3 only; released trial scoring checks their heights above 0.3 m and that
+neither is held. These are distinct criteria. Preserve released behavior,
+and report both released scoring and actual task predicates when episodes run.

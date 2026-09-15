@@ -4,6 +4,7 @@
 # For VLM-based situation handling and task recovery on Stretch robot with UR5e arm
 # Supports: Task 1 (Bottle Collection), Task 2 (Halve a Lemon), Task 3 (Firewood Storage)
 
+import os
 import rospy
 from geometry_msgs.msg import Point, Quaternion
 
@@ -25,7 +26,7 @@ class DKPromptExecutor:
         self.base = SegbotController()
 
         # Gemini API key (only needed if using VLM View Guide)
-        GEMINI_API_KEY = __import__("os").environ.get("GEMINI_API_KEY", "")
+        GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
         self.arm = UR5eController(
             use_vlm_view_guide=use_vlm_view_guide,
