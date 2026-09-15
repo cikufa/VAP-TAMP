@@ -2,6 +2,7 @@
 import base64
 import os
 import re
+import time
 
 DEFAULT_PROVIDER = "gemini"
 DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
@@ -31,6 +32,20 @@ def _error_code(response):
         return error.get("status") or error.get("code")
     except (AttributeError, ValueError):
         return None
+
+
+def _retry_delay(response):
+    try:
+        details = response.json().get("error", {}).get("details", [])
+        for detail in details:
+            if detail.get("@type", "").endswith("RetryInfo"):
+                value = detail.get("retryDelay", "")
+                match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)s", value)
+                if match:
+                    return min(float(match.group(1)) + 1.0, 60.0)
+    except (AttributeError, ValueError):
+        pass
+    return 10.0
 
 
 class OpenAIBackend:
@@ -121,14 +136,23 @@ class GeminiBackend:
         payload = self._convert(chat_input)
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, source_contract=chat_input, payload=payload)
-        response = _requests().post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
-            headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
-            json=payload, timeout=60,
-        )
-        record("vlm_response", round=round_number, provider=self.provider,
-               model=self.model, http_status=response.status_code,
-               body=response.text.replace(self.api_key, "[REDACTED_API_KEY]"))
+        for attempt in range(2):
+            response = _requests().post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
+                headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+                json=payload, timeout=60,
+            )
+            record("vlm_response", round=round_number, provider=self.provider,
+                   model=self.model, attempt=attempt + 1,
+                   http_status=response.status_code,
+                   body=response.text.replace(self.api_key, "[REDACTED_API_KEY]"))
+            if response.status_code != 429 or _error_code(response) != "RESOURCE_EXHAUSTED":
+                break
+            if attempt == 0:
+                delay = _retry_delay(response)
+                record("vlm_rate_limit_retry", round=round_number,
+                       provider=self.provider, model=self.model, delay_seconds=delay)
+                time.sleep(delay)
         if not response.ok or not response.text:
             raise BackendRequestError(self.provider, response.status_code,
                                       _error_code(response))

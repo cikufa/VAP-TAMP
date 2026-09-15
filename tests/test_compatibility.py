@@ -84,6 +84,24 @@ class CompatibilityChecks(unittest.TestCase):
                 post=Mock(return_value=response))):
             self.assertEqual(backend.request(source, 1), "yes;no;skip")
 
+    def test_gemini_retries_once_using_server_quota_delay(self):
+        backend = GeminiBackend(api_key="test-placeholder", model="gemini-test")
+        limited = SimpleNamespace(ok=False, text="limited", status_code=429,
+            json=lambda:{"error":{"status":"RESOURCE_EXHAUSTED", "details":[{
+                "@type":"type.googleapis.com/google.rpc.RetryInfo", "retryDelay":"4s"}]}})
+        success = SimpleNamespace(ok=True, text="response", status_code=200,
+            json=lambda:{"candidates":[{"content":{"parts":[{"text":"yes"}]}}]})
+        source = {"model":"ignored", "messages":[
+            {"role":"system", "content":"prompt"},
+            {"role":"user", "content":[{"type":"text", "text":"question"}]}],
+            "max_tokens":50}
+        post = Mock(side_effect=[limited, success])
+        with patch('vlm_backends._requests', return_value=SimpleNamespace(post=post)), \
+             patch('vlm_backends.time.sleep') as sleep:
+            self.assertEqual(backend.request(source, 1), "yes")
+        sleep.assert_called_once_with(5.0)
+        self.assertEqual(post.call_count, 2)
+
     def test_camera_unpacking_preserves_pixel_data(self):
         function = load_definition("vlm-tamp/eval.py", "_observation_data", {})
         data = {"rgb": object()}
