@@ -53,6 +53,7 @@ def main():
     probe_source=(ROOT/'scripts/probe_engine.py').read_bytes()
     probe_copy=out/'probe_engine.py'
     probe_copy.write_bytes(probe_source)
+    (out/'native_stage_trace.py').write_bytes((ROOT/'scripts/native_stage_trace.py').read_bytes())
     source_sha256=hashlib.sha256(probe_source).hexdigest()
     print('STARTUP_SERIES',out,flush=True)
     reports=[]
@@ -69,12 +70,15 @@ def main():
         before=external_snapshot()
         report=dict(index=i+1,launch_utc=datetime.now(timezone.utc).isoformat(),gpu_before_mib=gpu(),gpu_processes_before=gpu_processes(),gpu_samples=[],task=args.task)
         report['probe_source_sha256']=source_sha256
+        report['diagnostic_environment']={k:v for k,v in env.items() if k.startswith('VAPTAMP_NATIVE_') or k == 'VAPTAMP_MINIMAL_SCENE'}
         report['cache_root']=env.get('VAPTAMP_PROBE_CACHE_ROOT','existing project cache')
         report['omp_num_threads']=env.get('OMP_NUM_THREADS','unset')
         report['diagnostic_async_loads']=env.get('VAPTAMP_PROBE_ASYNC_LOADS')=='1'
         report['preload_torch']=env.get('VAPTAMP_PROBE_PRELOAD_TORCH')=='1'
         command=[sys.executable,'-u',str(probe_copy)]
         if args.task:command += ['--task',args.task]
+        if env.get('VAPTAMP_NATIVE_STRACE') == '1':
+            command = ['strace', '-f', '-tt', '-T', '-e', 'trace=%file,%network', '-o', str(out/f'probe_{i+1}.strace')] + command
         with (out/f'probe_{i+1}.log').open('w') as log:
             child=subprocess.Popen(command,cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             start=time.monotonic();timed_out=False
@@ -104,6 +108,9 @@ def main():
         report['scene_load_seconds']=phase.get('scene_loaded',0)-phase['scene_loading'] if 'scene_loaded' in phase else None
         report['scene_status']='not_requested' if not args.task else ('loaded' if 'scene_loaded' in phase else 'not_reached_or_failed')
         report['success']=child.returncode==0 and 'shutdown_completed' in phase and (not args.task or 'camera_ready' in phase)
+        if env.get('VAPTAMP_MINIMAL_SCENE') == '1':
+            report['success'] = report['success'] and 'minimal_rgb_saved' in phase
+        report['native_trace_sha256']=hashlib.sha256((out/'native_stage_trace.py').read_bytes()).hexdigest()
         after=external_snapshot()
         report['external_file_changes']=[p for p in set(before)|set(after) if before.get(p)!=after.get(p)]
         reports.append(report)

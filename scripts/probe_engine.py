@@ -53,6 +53,27 @@ if os.getenv('VAPTAMP_PROBE_ASYNC_LOADS') == '1':
                  '--/omni.kit.plugin/syncUsdLoads=false']
     event('diagnostic_async_loads_requested')
 
+if os.getenv('VAPTAMP_NATIVE_TASK_THREADS'):
+    sys.argv.append('--/plugins/carb.tasking.plugin/threadCount=' + str(int(os.environ['VAPTAMP_NATIVE_TASK_THREADS'])))
+
+# Isolate OG imports from native renderer initialization using the same engine/kit.
+if os.getenv('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
+    sys.path.append(str(root / 'scripts'))
+    from native_stage_trace import install
+    install(event)
+    from omni.isaac.kit import SimulationApp
+    event('native_without_og_enter')
+    app = SimulationApp({'headless': True, 'multi_gpu': False,
+                         'active_gpu': 0, 'physics_gpu': 0},
+                        experience=str(runtime / 'native/isaac-sim/apps/omnigibson.kit'))
+    event('native_without_og_ready')
+    for _ in range(5):
+        app.update()
+    event('shutdown_started')
+    app.close()
+    event('shutdown_completed')
+    sys.exit(0)
+
 import omnigibson as og
 from omnigibson.macros import gm
 
@@ -65,6 +86,10 @@ if os.getenv('VAPTAMP_PROBE_PRELOAD_TORCH') == '1':
     import torchvision
     event('ml_dependencies_preloaded',torch_version=torch.__version__,torch_file=torch.__file__)
 try:
+    if os.getenv('VAPTAMP_NATIVE_TRACE') == '1':
+        sys.path.append(str(root / 'scripts'))
+        from native_stage_trace import install
+        install(event)
     event('engine_initializing')
     og.launch()
     for _ in range(5):
@@ -108,6 +133,29 @@ try:
         (probe_dir / 'scene_summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print('ORIGINAL_SCENE_CAMERA_OK', probe_dir, flush=True)
         event('camera_ready')
+    elif os.getenv('VAPTAMP_MINIMAL_SCENE') == '1':
+        import numpy as np
+        from PIL import Image
+        event('minimal_scene_loading')
+        env = og.Environment(configs={
+            'scene': {'type': 'Scene', 'use_skybox': False},
+            'objects': [{'type': 'PrimitiveObject', 'name': 'smoke_cube',
+                         'primitive_type': 'Cube', 'size': 0.3,
+                         'position': [0, 0, 0.5], 'rgba': [1, 0, 0, 1]}],
+            'robots': [],
+        })
+        event('minimal_scene_loaded')
+        env.reset()
+        for index in range(10):
+            event('simulation_step_enter', index=index)
+            og.sim.step()
+            event('simulation_step_exit', index=index)
+        event('rgb_capture_enter')
+        obs, _ = og.sim.viewer_camera.get_obs()
+        rgb = np.asarray(obs['rgb'])[..., :3]
+        assert rgb.ndim == 3 and rgb.shape[2] == 3 and np.isfinite(rgb).all()
+        Image.fromarray(rgb.astype(np.uint8)).save(probe_dir / 'minimal_rgb.png')
+        event('minimal_rgb_saved', shape=list(rgb.shape), pixel_std=float(rgb.std()))
     else:
         event('scene_not_requested', reason='engine-only stability probe')
 finally:

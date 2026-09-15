@@ -17,3 +17,9 @@ export OMNIGIBSON_DATASET_PATH="$VAPTAMP_ROOT/.runtime/data/og_dataset"
 export OMNIGIBSON_KEY_PATH="$VAPTAMP_ROOT/.runtime/data/omnigibson.key"
 export OMNIGIBSON_GPU_ID=0
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$CUDA_CACHE_PATH" "$__GL_SHADER_DISK_CACHE_PATH" "$NLTK_DATA"
+
+# Native OptiX and telemetry do not follow the CUDA/GL cache settings.
+export OPTIX_CACHE_PATH="$VAPTAMP_ROOT/.runtime/cache/optix"
+export XDG_RUNTIME_DIR="$VAPTAMP_ROOT/.runtime/run"
+mkdir -p "$OPTIX_CACHE_PATH" "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"

@@ -114,3 +114,13 @@ zero. OMP, import-order and asset-load diagnostic flags are not adopted as fixes
 The engine remains unresolved; do not launch scientific trials or claim a stable
 simulator. The collected stack and immutable final probe are available for a
 focused native-runtime investigation without repeating the artifact search.
+
+## Follow-up: exact native boundary and syscall tracing
+
+See [native_minimal_diagnosis.md](native_minimal_diagnosis.md) for the subsequent
+bounded, instrumented comparisons. The block is `omni.usd.add_hydra_engine`
+before scene loading and reproduces without OG Python imports. Syscall tracing
+found external OptiX cache and telemetry runtime files missed by the earlier
+home-directory monitoring; both locations are now redirected into the project.
+The prior fresh-cache probe therefore did not isolate OptiX cache state.
+Baseline remains FAIL; root cause is not yet established.
