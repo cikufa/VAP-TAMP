@@ -64,6 +64,7 @@ def main():
         "VAPTAMP_LOG_DIR": str(out / "artifacts"),
         "VAPTAMP_TRACE_DIR": str(out / "trace"),
         "OMNIGIBSON_HEADLESS": "True",
+        "MPLBACKEND": "Agg",
     })
     metadata = {
         "status": "running", "task": args.task, "scene": scene, "seed": args.seed,
