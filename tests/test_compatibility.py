@@ -30,7 +30,7 @@ class CompatibilityChecks(unittest.TestCase):
         requests = SimpleNamespace(post=Mock(return_value=response))
         function = load_definition("vlm-tamp/gpt4v.py", "_request_gpt4v", {"requests": requests}, "GPT4VAgent")
         agent = SimpleNamespace(api_key="test-placeholder", current_round=1, responses={}, errors={})
-        return function(agent, {"model": "gpt-4-turbo"})
+        return function(agent, {"model": "gpt-4o-2024-05-13"})
 
     def test_http_error_cannot_become_affirmative_evidence(self):
         with self.assertRaisesRegex(RuntimeError, "HTTP 429"):

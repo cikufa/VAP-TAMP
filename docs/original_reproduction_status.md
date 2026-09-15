@@ -42,7 +42,7 @@ released domain and is not evidence of a robot grasp implementation.
 | Exact native torch/CUDA compatibility | Python 3.10, torch 2.0.1+cu118, vision 0.15.2+cu118; GPU arithmetic passes |
 | Dataset download permission | User approved 22.32 GB bundle, conditional on compatibility and disk checks |
 | Asset installation, task membership | Dataset/assets extracted and verified; required Ihlen firewood instance absent (see asset_status.md) |
-| OpenAI credential, exact-model API call | OPENAI_API_KEY absent at audit; no API test |
+| OpenAI credential, model API call | Credential authenticates; released model unavailable; approved gpt-4o-2024-05-13 lookup passes but image completion is blocked by exhausted API credit balance |
 | OmniGibson launch and camera | Two contained native launches pass; later startup stalled; task/camera not validated |
 | Original episode / five trials | Not attempted |
 | Successful original baseline commit | Does not exist |

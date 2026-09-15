@@ -5,11 +5,14 @@ import io
 import requests
 import numpy as np
 import time
+import os
+
+
+DEFAULT_VLM_MODEL = "gpt-4o-2024-05-13"
 
 
 class GPT4VAgent:
     def __init__(self):
-        import os
         self.prompt = "prompts.txt"
         self.planning_prompt = "planning_prompts.txt"
         self.api_key = os.getenv("OPENAI_API_KEY", "")
@@ -21,7 +24,10 @@ class GPT4VAgent:
         self.errors = {}
         self.responses = {}
         self.current_round = 0
-        self.gpt_version = "gpt-4-turbo"
+        # The released gpt-4-turbo identifier is no longer available to the
+        # reproduction account. Pin the approved, vision-capable replacement
+        # while allowing explicit experiment metadata to select another model.
+        self.gpt_version = os.getenv("VAPTAMP_OPENAI_MODEL", DEFAULT_VLM_MODEL)
         # self.resize = transforms.Resize((self.cfg["img_size"], self.cfg["img_size"]))
 
     def reset(self):

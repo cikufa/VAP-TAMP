@@ -61,6 +61,7 @@ The full episode launcher now also assembles videos, preserves the released
 goal results, and requires the requested number of `trial_end` events before
 accepting process completion. Process exit alone is insufficient.
 
-Next gate: user-supplied `OPENAI_API_KEY`, exact `gpt-4-turbo` access, then one
+Next gate: resolve API credit balance for the approved pinned
+`gpt-4o-2024-05-13` deviation, then one
 bounded full debug episode. Only its live visual predicates, state updates,
 replanning and final result can establish VAP-TAMP baseline acceptance.

@@ -66,7 +66,9 @@ continuing. No manipulation or active-perception success is claimed.
 A presence-only check still found no `OPENAI_API_KEY` in the environment or
 project `.env`. The private `configure_openai_key.py --check` helper is available
 but does not create an account credential. No authenticated request was sent.
-The required model remains `gpt-4-turbo`.
+The released model was `gpt-4-turbo`. The current reproduction uses the
+user-approved pinned `gpt-4o-2024-05-13` deviation; see
+`vlm_model_provenance.md`.
 
 All 12 existing compatibility and paper-control-flow unit tests pass. These
 do not establish live VLM, manipulation, replanning or full-trial acceptance.

@@ -42,7 +42,7 @@ This is a static API-based inference (class D), pending runtime validation.
 | Fast Downward | Vendored source at VAP-TAMP upstream SHA; existing C++ compiler and CMake, Release build | No separate dependency SHA is present |
 | VAL | Vendored source at same SHA; CMake Release build at `vlm-tamp/VAL/build/linux64/Release` | README's bare `make` is insufficient before configuration |
 | PDDL parser | PyPI `pddl`, API compatibility validated before freezing | Missing from supplied environment |
-| Simulation VLM | Released `GPT4VAgent`, `gpt-4-turbo`; requests, Pillow, torchvision, numpy | No OpenAI credentials currently available |
+| Simulation VLM | Released `GPT4VAgent`, `gpt-4-turbo`; approved reproduction default `gpt-4o-2024-05-13`; requests, Pillow, torchvision, numpy | Credential authenticates; image calls currently blocked by exhausted API credit balance |
 | Other VLM paths | `google-cloud-aiplatform` for optional Vertex Gemini 1.0 wrapper; `google-generativeai` for real-robot Gemini wrapper; requests for VLMViewGuide | Keep optional paths out of simulation imports where possible |
 | Other sim packages | OG pinned requirements plus matplotlib, numpy-quaternion, transforms3d, PyYAML, requests | Resolve in dedicated environment only |
 | Scene / robot | `Ihlen_0_int`, `store_firewood`, definition/instance 0, `fetch_behavior.yaml` / Fetch | Native released baseline selection |
@@ -84,7 +84,7 @@ it is not the selected version. Prefer generation-pinned GCS URLs and hashes.
    original firewood PDDL in isolated output directories.
 5. Obtain exact historical engine and approval for the versioned >20 GB dataset;
    confirm disk needs and native library versions. Then finalize GPU dependencies.
-6. Preserve released model selection. Load credentials only from environment or
+6. Record the approved pinned model deviation. Load credentials only from environment or
    ignored local `.env`; never use credentials embedded in upstream source.
 7. Configure released full verification flags and classical planning; preserve
    injection probabilities. Debug one episode, then five trials. No connector

@@ -34,6 +34,7 @@ def main():
         raise RuntimeError("OPENAI_API_KEY is missing; no episode has been started")
     if not os.getenv("EXP_PATH"):
         raise RuntimeError("Source scripts/engine_runtime.sh before launching")
+    model = os.getenv('VAPTAMP_OPENAI_MODEL', 'gpt-4o-2024-05-13')
     scene = {'store_firewood':'Ihlen_0_int','bringing_water':'Wainscott_0_garden'}[args.task]
     if not (root / '.runtime/data/og_dataset/scenes' / scene).is_dir():
         raise RuntimeError("Original scene assets are not installed")
@@ -59,7 +60,9 @@ def main():
     metadata = {
         "status": "running", "task": args.task, "scene": scene, "seed": args.seed,
         "fidelity": 'released_default' if args.task=='store_firewood' else 'alternative_released_task_with_cached_scene_deviation',
-        "trials": args.trials, "model": "gpt-4-turbo", "active_view_motion": False,
+        "trials": args.trials, "model": model,
+        "released_model": "gpt-4-turbo", "model_deviation": model != "gpt-4-turbo",
+        "active_view_motion": False,
         "precondition_verification": True, "effect_verification": True,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
         "dirty_worktree": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=root, text=True)),

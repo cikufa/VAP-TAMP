@@ -33,7 +33,7 @@ def save_key(path, key):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true',
-                        help='Check access to the released gpt-4-turbo model after saving.')
+                        help='Check text-and-image access to the configured reproduction model.')
     args = parser.parse_args()
     if not sys.stdin.isatty():
         raise SystemExit('Run this command in your own interactive terminal.')
