@@ -148,7 +148,7 @@ class GeminiBackend:
         record("vlm_request", round=round_number, provider=self.provider,
                model=self.model, source_contract=chat_input, payload=payload)
         response = None
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 response = _post_json(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent",
@@ -158,7 +158,7 @@ class GeminiBackend:
             except (TimeoutError, URLError, OSError):
                 record("vlm_transport_error", round=round_number,
                        provider=self.provider, model=self.model, attempt=attempt + 1)
-                if attempt == 0:
+                if attempt < 2:
                     time.sleep(2.0)
                     continue
                 raise BackendRequestError(self.provider, 0, "transport_error") from None
@@ -168,7 +168,7 @@ class GeminiBackend:
                    body=response.text.replace(self.api_key, "[REDACTED_API_KEY]"))
             if response.status_code != 429 or _error_code(response) != "RESOURCE_EXHAUSTED":
                 break
-            if attempt == 0:
+            if attempt < 2:
                 delay = _retry_delay(response)
                 record("vlm_rate_limit_retry", round=round_number,
                        provider=self.provider, model=self.model, delay_seconds=delay)
