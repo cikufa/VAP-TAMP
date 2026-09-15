@@ -1216,6 +1216,11 @@ while trial_counter < NUM_TRIALS:
     # Add only the segmentation already required by the released primitives.
     for modality in ('seg_semantic', 'seg_instance'):
         robot.add_obs_modality(modality)
+    # OG 1.0 does not refresh the parent space or populate newly attached
+    # annotators automatically. Render without advancing physics before reads.
+    env.load_observation_space()
+    for _ in range(10):
+        og.sim.render()
 
     robot_init_z = robot.get_position()[2]
     # Allow user to move camera more easily

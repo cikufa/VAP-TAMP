@@ -11,7 +11,9 @@ This is not exact task-level reproduction of the paper.
 | Required gate | Result | Evidence / remaining work |
 | --- | --- | --- |
 | Simulator startup / minimal rendering | PASS, bounded checks | Inotify quota fixed via project watcher exclusion. Native RGB/physics, minimal OG and Rs_int scene checks pass; see renderer_fix.md |
-| Alternative released task loads | PASS, construction only | bringing_water / Wainscott_0_garden environment constructed; next camera-reset gate fails on empty semantic buffer (renderer_fix.md) |
+| Five consecutive task startups | FAIL | Two passes, third fails in Isaac USD traversal during Fetch loading; series stopped. See camera_and_primitive_acceptance.md |
+| Alternative released task loads | PASS, scene and cameras | bringing_water / Wainscott_0_garden reset and RGB/segmentation pass; see camera_and_primitive_acceptance.md |
+| Scripted primitive | FAIL | Released lookat calls a Tiago-specific head helper on Fetch; KeyError head_1_joint. Action testing stopped here |
 | Planner works | PASS, symbolic scope | Released wrapper yields 8 actions / 9 states; VAL certifies bringing_water plan |
 | VLM works | FAIL (not demonstrated) | Exact gpt-4-turbo retained; OPENAI_API_KEY absent; no authenticated call |
 | Predicates verified | FAIL (not demonstrated in simulator) | Extraction passes planner check; no real image/query evidence |
@@ -35,7 +37,7 @@ scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP ac
 
 ## Remaining acceptance sequence
 
-1. Resolve the empty first segmentation frame at robot/camera reset; native startup, minimal OG, Rs_int, and bringing_water construction now pass.
+1. Diagnose the third-launch Isaac USD traversal exception and establish five clean startups. Then resolve the Fetch/Tiago head-joint mismatch in lookat. Camera warm-up and observation-space refresh pass in completed loads.
 2. Authenticate exact model and run one debug trial on the alternative released task.
 3. Validate the general paper algorithm separately from the fixed-view release:
    five paraphrases, majority vote, sufficiency, VLM direction, actual new sensor
@@ -52,7 +54,7 @@ scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP ac
 
 The missing Ihlen file no longer blocks selection of an alternative released
 task. Native material-system initialization is fixed by freeing the user inotify watch quota.
-End-to-end acceptance and local VLM credentials remain outstanding. No full debug trial or 3–5-trial pilot can be claimed.
+Camera/reset compatibility is fixed; the first scripted lookat primitive fails on a Tiago-specific helper used with Fetch. End-to-end acceptance and local VLM credentials remain outstanding. No full debug trial or 3–5-trial pilot can be claimed.
 Twelve unit tests pass (seven compatibility/security, five paper control flow),
 but all runtime algorithmic gates above remain unvalidated. No trial videos
 exist. The requested passing-baseline commit must wait for actual evidence.

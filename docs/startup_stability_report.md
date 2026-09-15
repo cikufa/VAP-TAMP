@@ -133,3 +133,17 @@ from 42,559 watches to 790, freeing the exhausted 65,536-watch quota. The unchan
 OG/Kit/driver stack then passed native RGB/physics and minimal OG/Rs_int checks.
 Bringing-water environment construction passes; acceptance stopped at an empty
 semantic camera buffer on reset. No host driver/sysctl/package change was needed.
+
+## Sequential stability series
+
+`results/original/startup/20260915T200657962867Z`: requested five launches; stopped after the third failed. This does **not** pass the five-launch stability gate.
+
+| Probe | Result | Wall seconds | GPU before/after MiB | Cleanup / external writes |
+| --- | --- | --- | --- | --- |
+| 1 | PASS | 24.22 | 1584 / 1625 | 0 simulator processes; 0 changed monitored files |
+| 2 | PASS | 24.24 | 1625 / 1592 | 0 simulator processes; 0 changed monitored files |
+| 3 | FAIL | 18.18 | 1592 / 1608 | 0 simulator processes; 0 changed monitored files |
+
+Probe 3 initialized the renderer in the normal time, then failed loading the Fetch dummy asset. The traceback ends in bundled Isaac `utils/prims.py:get_all_matching_child_prims`, line 359, at `traversal_queue.pop(0)`, with `AttributeError: str object has no attribute pop`. The source initializes that local as a list and only concatenates lists; source inspection alone does not explain the observed type. Do not attribute this to the driver, cache, or VAP-TAMP without further evidence. All three processes shut down cleanly. GPU totals include desktop activity; this short series cannot establish absence of a long-term leak.
+
+Next simulator diagnostic: capture the failing helper’s runtime code identity and local variable types during task construction in a bounded instrumented launch. Preserve the original failed attempt. The separate Fetch head-helper mismatch remains unresolved.

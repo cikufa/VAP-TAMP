@@ -140,6 +140,11 @@ try:
         event('scene_loaded')
         for modality in ('seg_semantic','seg_instance'):
             env.robots[0].add_obs_modality(modality)
+        env.load_observation_space()
+        event('camera_warmup_started')
+        for _ in range(10):
+            og.sim.render()
+        event('camera_warmup_completed')
         env.reset()
         for _ in range(10):
             og.sim.step()
@@ -151,10 +156,38 @@ try:
             if isinstance(data, dict):
                 summary['observations'][sensor] = {k:list(np.asarray(v).shape) for k,v in data.items()}
                 if 'rgb' in data:
+                    for modality in ('rgb', 'seg_semantic', 'seg_instance'):
+                        frame = np.asarray(data[modality])
+                        assert frame.size and np.isfinite(frame).all(), (sensor, modality, frame.shape)
                     Image.fromarray(np.asarray(data['rgb'])[..., :3].astype(np.uint8)).save(probe_dir / (sensor + '.png'))
         (probe_dir / 'scene_summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print('ORIGINAL_SCENE_CAMERA_OK', probe_dir, flush=True)
         event('camera_ready')
+        if os.getenv('VAPTAMP_PROBE_LOOKAT') == '1':
+            # Execute the released function unchanged, without eval.py's
+            # module-level VLM client or episode loop. This is a motion smoke
+            # test, not active perception or manipulation acceptance.
+            import ast
+            import hashlib
+            from omnigibson.action_primitives.starter_semantic_action_primitives import StarterSemanticActionPrimitives
+            source = (root / 'vlm-tamp/eval.py').read_text()
+            node = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == 'lookat')
+            namespace = dict(env=env, robot=robot, ap=StarterSemanticActionPrimitives(env))
+            exec(compile(ast.Module(body=[node], type_ignores=[]), 'released_eval_lookat', 'exec'), namespace)
+            target = 'water_bottle.n.01_1'
+            before = robot.get_joint_positions().copy()
+            event('primitive_started', primitive='released_lookat', target=target,
+                  function_sha256=hashlib.sha256(ast.get_source_segment(source, node).encode()).hexdigest())
+            namespace['lookat'](target)
+            after = robot.get_joint_positions().copy()
+            assert np.linalg.norm(after - before) > 1e-6, 'Head joints did not move'
+            for _ in range(10):
+                og.sim.render()
+            moved_obs, _ = robot.get_obs()
+            for sensor, data in moved_obs.items():
+                if isinstance(data, dict) and 'rgb' in data:
+                    Image.fromarray(np.asarray(data['rgb'])[..., :3].astype(np.uint8)).save(probe_dir / (sensor + '_after_lookat.png'))
+            event('primitive_completed', joints_before=before.tolist(), joints_after=after.tolist())
     elif os.getenv('VAPTAMP_MINIMAL_SCENE') == '1' or os.getenv('VAPTAMP_SCENE_MODEL'):
         import numpy as np
         from PIL import Image
