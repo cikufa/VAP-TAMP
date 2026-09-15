@@ -8,6 +8,17 @@ import time
 _sequence = itertools.count()
 
 
+def simulator_state(env, held=None, onfloor=()):
+    """Diagnostic ground truth for logs only; never supplied to a VLM/planner."""
+    objects = {}
+    for name, entity in env.task.object_scope.items():
+        if entity.exists and hasattr(entity, 'get_position_orientation'):
+            position, orientation = entity.get_position_orientation()
+            objects[name] = dict(position=position.tolist(), orientation=orientation.tolist())
+    return dict(objects=objects, robot_joint_positions=env.robots[0].get_joint_positions().tolist(),
+                held=None if held is None else held.name, onfloor_relationships=list(onfloor))
+
+
 def record(event, **fields):
     directory = os.getenv('VAPTAMP_TRACE_DIR')
     if not directory:

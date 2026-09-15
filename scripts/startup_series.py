@@ -42,6 +42,8 @@ def external_snapshot():
     return result
 
 def main():
+    from native_runtime import apply_cpu_affinity
+    apply_cpu_affinity()
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--count',type=int,default=5)
     parser.add_argument('--timeout',type=int,default=120)
@@ -54,6 +56,9 @@ def main():
     probe_copy=out/'probe_engine.py'
     probe_copy.write_bytes(probe_source)
     (out/'native_stage_trace.py').write_bytes((ROOT/'scripts/native_stage_trace.py').read_bytes())
+    (out/'task_load_trace.py').write_bytes((ROOT/'scripts/task_load_trace.py').read_bytes())
+    for relative in ('scripts/released_actions_smoke.py', 'vlm-tamp/fetch_camera_compat.py', 'vlm-tamp/primitive_compat.py', 'vlm-tamp/eval.py'):
+        (out/Path(relative).name).write_bytes((ROOT/relative).read_bytes())
     source_sha256=hashlib.sha256(probe_source).hexdigest()
     print('STARTUP_SERIES',out,flush=True)
     reports=[]
@@ -76,6 +81,7 @@ def main():
         report['diagnostic_async_loads']=env.get('VAPTAMP_PROBE_ASYNC_LOADS')=='1'
         report['preload_torch']=env.get('VAPTAMP_PROBE_PRELOAD_TORCH')=='1'
         report['released_lookat_requested']=env.get('VAPTAMP_PROBE_LOOKAT')=='1'
+        report['released_actions_requested']=env.get('VAPTAMP_PROBE_ACTIONS')=='1'
         command=[sys.executable,'-u',str(probe_copy)]
         if args.task:command += ['--task',args.task]
         if env.get('VAPTAMP_NATIVE_STRACE') == '1':
@@ -115,6 +121,8 @@ def main():
         report['success']=report['shutdown_observed'] and 'probe_failed' not in phase and (not args.task or 'camera_ready' in phase)
         if report['released_lookat_requested']:
             report['success'] = report['success'] and 'primitive_completed' in phase
+        if report['released_actions_requested']:
+            report['success'] = report['success'] and 'scripted_plan_completed' in phase
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1' or env.get('VAPTAMP_SCENE_MODEL'):
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':

@@ -12,8 +12,11 @@ root = Path(os.environ["VAPTAMP_ROOT"])
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--original-scene', action='store_true')
 parser.add_argument('--task', choices=['bringing_water', 'halve_an_egg'])
+parser.add_argument('--allow-root', action='store_true', help='For the isolated user namespace only')
 args = parser.parse_args()
 sys.argv = sys.argv[:1]
+if args.allow_root:
+    sys.argv.append('--allow-root')
 runtime = root / ".runtime"
 probe_dir = Path(os.environ.get('VAPTAMP_PROBE_DIR', runtime / "probes" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")))
 probe_dir.mkdir(parents=True, exist_ok=False)
@@ -22,7 +25,8 @@ started = time.monotonic()
 def event(name, **fields):
     with (probe_dir / 'phases.jsonl').open('a') as output:
         output.write(json.dumps(dict(event=name, elapsed_seconds=time.monotonic()-started, **fields))+'\n')
-event('process_started', python_executable=sys.executable, python_version=sys.version)
+event('process_started', python_executable=sys.executable, python_version=sys.version,
+      cpu_affinity=sorted(os.sched_getaffinity(0)))
 cache_root=Path(os.environ.get('VAPTAMP_PROBE_CACHE_ROOT',runtime/'cache'))
 portable_root=runtime/'kit-portable'
 if 'VAPTAMP_PROBE_CACHE_ROOT' in os.environ:
@@ -118,6 +122,10 @@ try:
         og.app.update()
     print("NATIVE_ENGINE_LAUNCH_OK", flush=True)
     event('engine_initialized')
+    if os.getenv('VAPTAMP_TASK_LOAD_TRACE') == '1':
+        sys.path.append(str(root / 'scripts'))
+        from task_load_trace import install
+        install(event)
     if args.original_scene or args.task:
         import yaml
         import json
@@ -149,6 +157,10 @@ try:
         for _ in range(10):
             og.sim.step()
         robot = env.robots[0]
+        event('robot_head_metadata', joints={name: dict(lower=float(joint.lower_limit), upper=float(joint.upper_limit))
+              for name, joint in robot.joints.items() if 'head' in name},
+              camera_control_idx=robot.camera_control_idx.tolist(),
+              head_links=[name for name in robot.links if 'head' in name or 'eye' in name])
         obs, info = robot.get_obs()
         summary = dict(kind='environment_probe_only', scene=scene, task=task,
                        robot=robot.name, observations={}, object_names=[o.name for o in env.scene.objects])
@@ -171,12 +183,39 @@ try:
             import hashlib
             from omnigibson.action_primitives.starter_semantic_action_primitives import StarterSemanticActionPrimitives
             source = (root / 'vlm-tamp/eval.py').read_text()
+            sys.path.insert(0, str(root / 'vlm-tamp'))
+            from fetch_camera_compat import look_at_fetch, camera_sensor, pose
+            initial_joints = robot.get_joint_positions().copy()
+            sensor = camera_sensor(robot)
+            # Validate physical axis signs with a reachable target offset from
+            # the current optical axis, independent of where task objects lie.
+            cp, cr = pose(sensor)
+            calibration_target = cp + cr @ np.array([0.5, 0.2, -3.0])
+            calibration = look_at_fetch(robot, calibration_target)
+            for _ in range(10):
+                og.sim.render()
+            cp_after, cr_after = pose(sensor)
+            actual_direction = cr_after.T @ (calibration_target - cp_after)
+            actual_direction /= np.linalg.norm(actual_direction)
+            angular_error = float(np.degrees(np.arccos(np.clip(-actual_direction[2], -1, 1))))
+            event('head_kinematics_checked', angular_error_degrees=angular_error,
+                  solver=calibration, joints_actual=robot.get_joint_positions().tolist(),
+                  camera_before=cp.tolist(), camera_after=cp_after.tolist())
+            assert angular_error < 2.0, angular_error
+            moved = robot.get_joint_positions().copy()
+            other_indices = [i for i in range(len(moved)) if i not in robot.camera_control_idx]
+            assert np.allclose(initial_joints[other_indices], moved[other_indices], atol=1e-5)
+            robot.set_joint_positions(initial_joints)
+            pose(sensor)
+            for _ in range(3):
+                og.sim.render()
             node = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == 'lookat')
-            namespace = dict(env=env, robot=robot, ap=StarterSemanticActionPrimitives(env))
+            namespace = dict(env=env, robot=robot, ap=StarterSemanticActionPrimitives(env), record=event)
             exec(compile(ast.Module(body=[node], type_ignores=[]), 'released_eval_lookat', 'exec'), namespace)
             target = 'water_bottle.n.01_1'
             before = robot.get_joint_positions().copy()
             event('primitive_started', primitive='released_lookat', target=target,
+                  target_position=env.task.object_scope[target].get_position().tolist(),
                   function_sha256=hashlib.sha256(ast.get_source_segment(source, node).encode()).hexdigest())
             namespace['lookat'](target)
             after = robot.get_joint_positions().copy()
@@ -188,6 +227,10 @@ try:
                 if isinstance(data, dict) and 'rgb' in data:
                     Image.fromarray(np.asarray(data['rgb'])[..., :3].astype(np.uint8)).save(probe_dir / (sensor + '_after_lookat.png'))
             event('primitive_completed', joints_before=before.tolist(), joints_after=after.tolist())
+        if os.getenv('VAPTAMP_PROBE_ACTIONS') == '1':
+            sys.path.insert(0, str(root / 'scripts'))
+            from released_actions_smoke import run
+            run(root, probe_dir, env, event)
     elif os.getenv('VAPTAMP_MINIMAL_SCENE') == '1' or os.getenv('VAPTAMP_SCENE_MODEL'):
         import numpy as np
         from PIL import Image

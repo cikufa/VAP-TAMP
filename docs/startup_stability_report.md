@@ -1,5 +1,10 @@
 # Sequential startup characterization
 
+**Latest result:** five consecutive task/camera/step/shutdown passes with
+process affinity on CPUs 16–31. See [startup_affinity_fix.md](startup_affinity_fix.md)
+and run `20260915T204931522467Z`. Earlier failed series below are retained as
+historical evidence and are superseded by this bounded acceptance result.
+
 Five clean, sequential process launches on 2026-09-15. All used the pinned
 OG/engine and contained runtime settings, with bringing_water selected for
 scene loading after engine initialization. **0/5 passed.**

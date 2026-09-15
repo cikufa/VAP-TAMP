@@ -23,3 +23,8 @@ export OPTIX_CACHE_PATH="$VAPTAMP_ROOT/.runtime/cache/optix"
 export XDG_RUNTIME_DIR="$VAPTAMP_ROOT/.runtime/run"
 mkdir -p "$OPTIX_CACHE_PATH" "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
+
+# Audited on this i9-14900K workstation: five clean task launches on its
+# efficiency cores, versus intermittent corruption/hangs without affinity.
+# Only project launchers apply this to themselves and their descendants.
+export VAPTAMP_CPU_AFFINITY="${VAPTAMP_CPU_AFFINITY-16-31}"

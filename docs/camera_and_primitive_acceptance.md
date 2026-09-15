@@ -1,5 +1,11 @@
 # Camera acceptance and first primitive failure
 
+**Latest update:** camera and head compatibility are fixed; five sequential
+task startups pass with process affinity. The scripted task primitives now
+execute with genuine failure outcomes retained. See `startup_affinity_fix.md`,
+`fetch_head_compatibility.md`, and `released_primitive_replay.md`. The failures
+below are the preserved diagnostic history, not the current status.
+
 2026-09-15. Alternative released task: `bringing_water`, cached
 `Wainscott_0_garden`, Fetch. This is pipeline reproduction, not exact Ihlen
 firewood reproduction. No full episode or connector experiment was run.

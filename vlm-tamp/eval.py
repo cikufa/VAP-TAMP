@@ -15,10 +15,10 @@ import cv2
 from omnigibson import object_states
 from PIL import Image
 from omnigibson.macros import gm
-from omnigibson.utils.constants import CLASS_NAME_TO_CLASS_ID
+from omnigibson.utils.constants import semantic_class_id_to_name
 from pddl_sim import pddlsim
 from gpt4v import GPT4VAgent
-from repro_trace import record
+from repro_trace import record, simulator_state
 # The optional Vertex Gemini wrapper constructs a cloud client at import time.
 # Do not import it on the released GPT4V path.
 
@@ -183,10 +183,7 @@ def initialize_active_perception(
 
 
 def get_class_name_from_class_id(target_class_id):
-    for class_name, class_id in CLASS_NAME_TO_CLASS_ID.items():
-        if class_id == target_class_id:
-            return class_name
-    return None
+    return semantic_class_id_to_name().get(target_class_id)
 
 
 def yaw_to_quaternion(yaw):
@@ -215,10 +212,11 @@ def yaw_to_quaternion(yaw):
 
 
 def sample_teleport_pose_near_object(ap, obj, pose_on_obj=None, **kwargs):
+    from primitive_compat import sample_aabb_side
     with PlanningContext(ap.robot, ap.robot_copy, "simplified") as context:
         for _ in range(MAX_ATTEMPTS_FOR_SAMPLING_POSE_NEAR_OBJECT):
             # if pose_on_obj is None:
-            pos_on_obj = ap._sample_position_on_aabb_side(obj)
+            pos_on_obj = sample_aabb_side(obj)
             pose_on_obj = [pos_on_obj, np.array([0, 0, 0, 1])]
 
             distance = np.random.uniform(MIN_TELEPORT_DIST, MAX_TELEPORT_DIST)
@@ -422,12 +420,24 @@ def run_sim(step=20):
     Image.fromarray(get_tpv_rgb(), "RGBA").save(
         os.path.join(debug_path, str(sim_counter) + ".png")
     )
+    first_person_path = os.path.join(os.path.dirname(debug_path), 'first_person')
+    os.makedirs(first_person_path, exist_ok=True)
+    Image.fromarray(get_fpv_rgb()[..., :3]).save(
+        os.path.join(first_person_path, str(sim_counter) + '.png'))
+    record('frame', index=sim_counter, simulation_time=float(og.sim.current_time),
+           third_person=os.path.join(debug_path, str(sim_counter) + '.png'),
+           first_person=os.path.join(first_person_path, str(sim_counter) + '.png'))
     sim_counter += 1
 
 
 def lookat(obj_name="can_of_soda_89"):
     obj = env.task.object_scope[obj_name].wrapped_obj
     target_obj_pose = obj.get_position_orientation()
+    if robot.model_name == 'Fetch':
+        from fetch_camera_compat import look_at_fetch
+        result = look_at_fetch(robot, target_obj_pose[0])
+        record('fetch_lookat_compat', target=obj_name, **result)
+        return
     # ap = StarterSemanticActionPrimitives(env)
     head_q = ap._get_head_goal_q(target_obj_pose)
     head_action = ap.robot.get_joint_positions()
@@ -1287,7 +1297,8 @@ while trial_counter < NUM_TRIALS:
         PICK_OBJ_HEIGHT = 2.8
 
     problem_file = init_problem_file
-    record('trial_start', trial=trial_counter, task=a_name)
+    record('trial_start', trial=trial_counter, task=a_name,
+           simulator_state=simulator_state(env, obj_held, onfloor_relationships))
     terminate = False
     invalid_epi = False
 
@@ -1368,7 +1379,8 @@ while trial_counter < NUM_TRIALS:
                 raise RuntimeError
 
             action_counter += 1
-            record('action_end', trial=trial_counter, action_count=action_counter, action=action)
+            record('action_end', trial=trial_counter, action_count=action_counter, action=action,
+                   simulator_state=simulator_state(env, obj_held, onfloor_relationships))
 
             if action_counter > MAX_NUM_ACTION:
                 terminate = True

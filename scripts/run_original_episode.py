@@ -16,6 +16,8 @@ import time
 
 
 def main():
+    from native_runtime import apply_cpu_affinity
+    apply_cpu_affinity()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--trials", type=int, default=1)
@@ -101,8 +103,20 @@ def main():
             metadata["wall_seconds"] = time.monotonic() - started
             (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
     print("Process status:", metadata["status"], metadata["exit_code"])
+    from episode_videos import encode_videos
+    metadata['videos'] = encode_videos(out / 'artifacts')
+    result_path = out / 'exp_results.json'
+    metadata['released_results'] = json.loads(result_path.read_text()) if result_path.exists() else None
+    events_path = out / 'trace/events.jsonl'
+    events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.exists() else []
+    metadata['completed_trials'] = sum(event.get('event') == 'trial_end' for event in events)
+    metadata['all_requested_trials_completed'] = metadata['completed_trials'] == args.trials
+    metadata['cpu_affinity'] = sorted(os.sched_getaffinity(0))
+    (out / 'run_metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
     if metadata["exit_code"] != 0:
         raise SystemExit(1)
+    if not metadata['all_requested_trials_completed']:
+        raise SystemExit('Process exited without completing all requested trials; inspect preserved logs')
 
 
 if __name__ == "__main__":

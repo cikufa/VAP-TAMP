@@ -1,5 +1,13 @@
 # Original reproduction status
 
+**Current checkpoint:** simulator/cameras and five-start stability gate pass
+with process affinity; Fetch head and floor sampler compatibility are fixed.
+An eight-action scripted replay plus videos/state logs works, retaining a
+failed second grasp and false task result. OPENAI_API_KEY is still absent, so
+no authenticated VAP-TAMP episode is claimed. See `baseline_acceptance_report.md`
+and `released_primitive_replay.md` for current evidence; older notes below are
+historical.
+
 Last updated 2026-09-15. **Stage A is not yet reproduced.** No connector code
 may be started from this checkpoint.
 

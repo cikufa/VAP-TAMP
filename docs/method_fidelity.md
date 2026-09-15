@@ -8,7 +8,23 @@ supplement was identified in its visible links.
 Classes: A released and executable; B released requiring compatibility fixes;
 C paper-described missing logic actually reimplemented; D assumptions required;
 E unavailable/unreproduced. A does not imply paper-equivalence. There are no
-class-C implementations yet. Pending work is not counted as a reconstruction.
+fully validated class-C integrations yet. Algorithm 2 control flow exists with
+unit tests; live VLM/motion integration remains pending.
+
+## Latest execution compatibility changes
+
+| Component | What we run | Fidelity class | Reason |
+| --- | --- | --- | --- |
+| Runtime scheduling | Same engine/Conda stack, process restricted to audited CPUs 16–31 | B | Five task startups pass; unrestricted runtime had intermittent corruption/stalls. Hardware root cause is not established |
+| Fetch target-directed head motion | Existing lookat target converted to Fetch joint positions using actual kinematics | B | OG helper hard-codes Tiago joints; actual camera pointing and limits tested |
+| Navigation bounding-box samples | Same random sampler, with center-to-face distance corrected to half of full extent | B | OG 1.0 uses full extent and cannot find room-valid poses for the large floor |
+| Semantic label lookup | OG 1.0's semantic_class_id_to_name function | B | Released import refers to an unavailable constant |
+| Execution diagnostics | Source-extracted primitive replay without a VLM; videos and physical-state logs | Diagnostic only | Not counted as a VAP-TAMP trial; failed grasp and false task result preserved |
+
+Failure probabilities, fixed-view navigation behavior (`tuck` after `lookat`),
+PDDL, verification order and model remain unchanged. Geometry changes affect
+sampled poses and must be disclosed; they are not an exact-byte reproduction of
+the broken helper. Full baseline acceptance remains incomplete.
 
 | Component | Paper | Official repo | What we run | Fidelity class | Modified? | Reason |
 | --- | --- | --- | --- | --- | --- | --- |

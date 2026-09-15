@@ -15,6 +15,7 @@ assert (fs/'IMAGE_RECEIPT.json').exists()
 p = argparse.ArgumentParser()
 p.add_argument('--timeout',type=int,default=60)
 p.add_argument('--check-only',action='store_true')
+p.add_argument('--task', choices=['bringing_water'])
 args=p.parse_args()
 out=root/'results/original/image_renderer'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
 out.mkdir(parents=True)
@@ -33,6 +34,7 @@ for name in ['image_renderer_smoke.py','native_stage_trace.py']:
 command=['bwrap','--unshare-user','--uid','0','--gid','0','--die-with-parent','--new-session',
  '--bind',str(fs),'/', '--dev-bind','/dev','/dev','--proc','/proc','--tmpfs','/tmp','--tmpfs','/run',
  '--ro-bind','/sys','/sys','--bind',str(out),'/output',
+ '--bind',str(root),'/project',
  '--ro-bind',str(links),'/driver-libs','--ro-bind','/usr/lib/x86_64-linux-gnu','/host-driver',
  '--ro-bind','/usr/share/vulkan/icd.d/nvidia_icd.json','/driver/nvidia_icd.json',
  '--ro-bind','/usr/bin/nvidia-smi','/usr/bin/nvidia-smi',
@@ -44,10 +46,16 @@ command=['bwrap','--unshare-user','--uid','0','--gid','0','--die-with-parent','-
  '--setenv','CUDA_CACHE_PATH','/output/cuda','--setenv','__GL_SHADER_DISK_CACHE_PATH','/output/gl',
  '--setenv','XDG_CACHE_HOME','/output/cache','--setenv','XDG_CONFIG_HOME','/output/config',
  '--setenv','XDG_DATA_HOME','/output/data','--setenv','XDG_RUNTIME_DIR','/output/run',
+ '--setenv','VAPTAMP_ROOT','/project','--setenv','VAPTAMP_PROBE_DIR','/output/probe',
+ '--setenv','OMNIGIBSON_ASSET_PATH','/project/.runtime/data/assets',
+ '--setenv','OMNIGIBSON_DATASET_PATH','/project/.runtime/data/og_dataset',
+ '--setenv','OMNIGIBSON_KEY_PATH','/project/.runtime/data/omnigibson.key',
  '--chdir','/omnigibson-src','--','/bin/bash','-c']
 script='source /isaac-sim/setup_conda_env.sh\n'
 if args.check_only:
  script += 'cat /etc/os-release\npython --version\nnvidia-smi --query-gpu=name,driver_version --format=csv,noheader\n'
+elif args.task:
+ script += 'exec python -u /project/scripts/probe_engine.py --task bringing_water --allow-root\n'
 else:
  script += 'cp /omnigibson-src/omnigibson/omnigibson.kit /isaac-sim/apps/omnigibson.kit\nexec python -u /output/image_renderer_smoke.py\n'
 command.append(script)
@@ -66,9 +74,11 @@ with (out/'console.log').open('w') as log:
  # Kill any descendants remaining in this probe's own process group.
  try:os.killpg(child.pid,signal.SIGKILL)
  except ProcessLookupError:pass
-phases=[json.loads(l) for l in (out/'phases.jsonl').read_text().splitlines()] if (out/'phases.jsonl').exists() else []
+phase_path = out / ('probe/phases.jsonl' if args.task else 'phases.jsonl')
+phases=[json.loads(l) for l in phase_path.read_text().splitlines()] if phase_path.exists() else []
 events={x['event'] for x in phases}
+required = ['camera_ready','shutdown_started'] if args.task else ['hydra_ready','rgb_saved','physics_stepped','shutdown_enter']
 result=dict(exit_code=child.returncode,timed_out=timed_out,seconds=time.monotonic()-start,
- success=child.returncode==0 and all(x in events for x in ['hydra_ready','rgb_saved','physics_stepped','shutdown_exit']),check_only=args.check_only)
+ success=child.returncode==0 and not timed_out and 'probe_failed' not in events and all(x in events for x in required),check_only=args.check_only,task=args.task)
 (out/'summary.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result),flush=True)
