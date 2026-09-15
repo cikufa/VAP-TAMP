@@ -16,13 +16,13 @@ This is not exact task-level reproduction of the paper.
 | Head lookat primitive | PASS | Fetch compatibility adapter validated against physical camera pose and joint limits; see fetch_head_compatibility.md |
 | Task manipulation primitives | PASS, execution infrastructure only | Eight-action scripted replay completes; four navigation calls find valid poses and one bottle is grasped/placed. A second grasp fails its released visibility precondition; recovery needs the VLM loop |
 | Planner works | PASS, symbolic scope | Released wrapper yields 8 actions / 9 states; VAL certifies bringing_water plan |
-| VLM works | FAIL (not demonstrated) | Exact gpt-4-turbo retained; OPENAI_API_KEY absent; no authenticated call |
+| VLM works | BLOCKED (model access) | Key authenticates successfully (model list HTTP 200), but exact gpt-4-turbo lookup and completion both return 404 model_not_found; see vlm_model_provenance.md |
 | Predicates verified | FAIL (not demonstrated in simulator) | Extraction passes planner check; no real image/query evidence |
 | State updates work | FAIL (not demonstrated end to end) | Released update code retained, event logging present; no live discrepancy |
 | Replanning works | FAIL (not demonstrated end to end) | Planner smoke is not a discrepancy/recovery episode |
 | Active perception works / faithfully reconstructed | FAIL | Fixed-view released sim retained; Algorithm 2 control-flow component tested; VLM/motion/observation integration remains pending |
 | Full trial finishes | FAIL | No full trial launched |
-| Video/logging works | PASS for scripted replay; VLM logging pending | First/third-person MP4s decode, with action/position traces. Full VLM episode artifacts still require authentication |
+| Video/logging works | PASS for scripted replay; VLM logging pending | First/third-person MP4s decode, with action/position traces. Full VLM episode artifacts still require access to the released model |
 
 FAIL (not demonstrated) is an evidence gate, not evidence that the method is
 scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP acceptance remains separate.
@@ -40,8 +40,8 @@ scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP ac
 
 ## Remaining acceptance sequence
 
-1. Supply the user's real API key through the private setup command; a presence-only check still finds none. This is the current external blocker.
-2. Authenticate the exact model and run one debug trial on the alternative released task, diagnosing any newly exposed verification/replanning issue before a pilot.
+1. Resolve exact-model access: the supplied key authenticates, but both model lookup and direct completion return `404 model_not_found` for `gpt-4-turbo`. Use a credential/project with access, or obtain explicit approval for a documented model deviation. Evidence: `results/original/model_access/20260915T214338284812Z/endpoint_diagnosis.json`.
+2. Once exact-model access works (or a deviation is approved and verified), run one debug trial on the alternative released task, diagnosing any newly exposed verification/replanning issue before a pilot.
 3. Validate the general paper algorithm separately from the fixed-view release:
    five paraphrases, majority vote, sufficiency, VLM direction, actual new sensor
    observation, symbolic correction and replan. Do not label the dormant generic
