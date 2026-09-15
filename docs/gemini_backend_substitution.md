@@ -58,9 +58,31 @@ episode:
 - exact requested response `image-ok`: yes
 - evidence: `results/original/model_access/20260915T234455548337Z/result.json`
 
-No simulator was started during validation. Seventeen local tests cover API
+No simulator was started during the isolated validation. Eighteen local tests cover API
 failure handling, secret redaction, request conversion, response preservation,
 camera compatibility, and previously validated runtime compatibility.
+
+## Bounded end-to-end result
+
+Seed 0 of `bringing_water` completed from scene startup through clean shutdown
+in 268.5 seconds:
+
+- 37 executed actions and 24 planning events;
+- 41 Gemini image requests and 42 HTTP responses (one bounded 429 retry);
+- 61 verification events, including 23 with unmatched effects or preconditions;
+- state correction and replanning after real visual discrepancies and a released
+  injected grasp failure;
+- 59-frame first-person and third-person videos;
+- released task result: 0 success, 1 failed.
+
+Evidence:
+`results/original/debug_episode/20260915T234514360281Z/run_metadata.json` and
+the sibling `trace/events.jsonl`. The pipeline completion passes the execution
+gate; the task failure is retained and does not support a success-rate claim.
+
+Kit's bundled Python packages conflicted with Conda `requests/urllib3`, so the
+provider adapters use Python's standard HTTPS client. This changes transport
+implementation only; request payloads and response parsing are unchanged.
 
 Sources:
 

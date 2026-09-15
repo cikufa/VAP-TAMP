@@ -34,7 +34,7 @@ the broken helper. Full baseline acceptance remains incomplete.
 | Environment | OmniGibson/BEHAVIOR, no version pins | Incomplete Python 3.9 / torch 1.12.1 env | Python 3.10 planner-only prefix; OG 1.0.0 candidate | D | Provisioning only | Historical native engine uses Python 3.10 |
 | Original simulator | Five household tasks | Fetch / Ihlen / store_firewood default | Not launched | E | No | Engine, assets and credentials gate |
 | Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Intended: both true, classical planning, NL false | B | Flags parameterized; no episode yet | Upstream defaults select another strategy |
-| Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses OpenAI gpt-4-turbo | Gemini Developer API, gemini-3.5-flash-lite free tier; same prompts, 256x256 PNG and semicolon parsing | D; image request passed, episode pending | Yes | Released model unavailable and OpenAI credit exhausted; explicit provider/model substitution |
+| Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses OpenAI gpt-4-turbo | Gemini Developer API, gemini-3.5-flash-lite free tier; same prompts, 256x256 PNG and semicolon parsing | D; bounded episode completed | Yes | Released model unavailable and OpenAI credit exhausted; explicit provider/model substitution |
 | Real VLM | Gemini Vision family, no endpoint ID | Gemini 2.0 flash exp in real executor / VLMViewGuide; optional Vertex 1.0 Pro Vision; offline map planner now Gemini 2.5 Flash | Not run | D/E | No model change | Cannot infer which exact endpoint produced published trials |
 | Credentials | Not method logic | Two embedded credential literals found | Environment-variable reads replace both | B | Yes | Never use embedded upstream credentials |
 | Primitive execution | Parameterized motion library | Teleport base/object, set states, gravity toggles | No physics execution | E | No | Native release must be reproduced before changes |
@@ -48,6 +48,10 @@ the broken helper. Full baseline acceptance remains incomplete.
 | Graph construction | RGB-D instances/relations | Standalone exporter + Stretch SceneGraph | Not executed | E | No | Simulation does not call exporter |
 | Graph maintenance | Observation and expected-effect updates | PDDL string corrections; no generic observation refresh in AP | Source audited | E runtime | No | Missing integration remains explicit |
 | Connector / physical insertion | New diagnostic, not paper task | Not released | Not implemented | E | No | Successful original baseline commit required first |
+
+The completed Gemini-backed seed-0 trial is execution evidence, not model
+equivalence evidence. It ended with the released task score false after 37
+actions and extensive situation handling; see `gemini_backend_substitution.md`.
 
 ## Failure probabilities
 
