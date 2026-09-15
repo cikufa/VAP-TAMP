@@ -16,7 +16,7 @@ This is not exact task-level reproduction of the paper.
 | Head lookat primitive | PASS | Fetch compatibility adapter validated against physical camera pose and joint limits; see fetch_head_compatibility.md |
 | Task manipulation primitives | PASS, execution infrastructure only | Eight-action scripted replay completes; four navigation calls find valid poses and one bottle is grasped/placed. A second grasp fails its released visibility precondition; recovery needs the VLM loop |
 | Planner works | PASS, symbolic scope | Released wrapper yields 8 actions / 9 states; VAL certifies bringing_water plan |
-| VLM works | BLOCKED (API credit balance) | Approved gpt-4o-2024-05-13 lookup succeeds, but a real image completion returns 429 credit_balance_exhausted; see vlm_model_provenance.md |
+| VLM works | PASS (provider/model deviation) | Gemini 3.6 Flash free-tier image request returns HTTP 200 and exact requested text; prompts/input/parsing preserved through a modular adapter. See gemini_backend_substitution.md |
 | Predicates verified | FAIL (not demonstrated in simulator) | Extraction passes planner check; no real image/query evidence |
 | State updates work | FAIL (not demonstrated end to end) | Released update code retained, event logging present; no live discrepancy |
 | Replanning works | FAIL (not demonstrated end to end) | Planner smoke is not a discrepancy/recovery episode |
@@ -40,8 +40,8 @@ scientifically ineffective. The prior startup failure is fixed; full VAP-TAMP ac
 
 ## Remaining acceptance sequence
 
-1. Add API credit to the project used by the configured key. Model lookup already succeeds, but the image completion returns `credit_balance_exhausted`.
-2. Re-run the bounded authenticated image check, then run one debug trial on the alternative released task, diagnosing any newly exposed verification/replanning issue before a pilot.
+1. Run one bounded debug trial on the alternative released task with the validated Gemini backend, diagnosing any newly exposed verification/replanning issue before a pilot.
+2. If the debug trial completes, inspect predicate, state-update, replan, task-result, video, and provider traces before expanding to the pilot.
 3. Validate the general paper algorithm separately from the fixed-view release:
    five paraphrases, majority vote, sufficiency, VLM direction, actual new sensor
    observation, symbolic correction and replan. Do not label the dormant generic

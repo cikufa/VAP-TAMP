@@ -1,5 +1,9 @@
 # VLM model provenance and access gate
 
+Current active backend: Gemini 3.6 Flash free tier. See
+`gemini_backend_substitution.md`. The OpenAI history below is retained to show
+why the provider substitution was required and how OpenAI can be restored.
+
 The exact released simulation request identifier is `gpt-4-turbo`, sent to
 OpenAI Chat Completions by `vlm-tamp/gpt4v.py`. The paper's real-robot setup
 names Gemini Vision, without making it the model for this released simulation.

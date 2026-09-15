@@ -30,11 +30,19 @@ def main():
         raise RuntimeError("Use the dedicated environment")
     from dotenv import load_dotenv
     load_dotenv(root / ".env", override=False)
-    if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("OPENAI_API_KEY is missing; no episode has been started")
+    provider = os.getenv('VAPTAMP_VLM_PROVIDER', 'gemini').lower()
+    if provider == 'gemini':
+        if not (os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')):
+            raise RuntimeError("GEMINI_API_KEY is missing; no episode has been started")
+        model = os.getenv('VAPTAMP_GEMINI_MODEL', 'gemini-3.6-flash')
+    elif provider == 'openai':
+        if not os.getenv('OPENAI_API_KEY'):
+            raise RuntimeError("OPENAI_API_KEY is missing; no episode has been started")
+        model = os.getenv('VAPTAMP_OPENAI_MODEL', 'gpt-4o-2024-05-13')
+    else:
+        raise RuntimeError(f"Unsupported VAPTAMP_VLM_PROVIDER: {provider}")
     if not os.getenv("EXP_PATH"):
         raise RuntimeError("Source scripts/engine_runtime.sh before launching")
-    model = os.getenv('VAPTAMP_OPENAI_MODEL', 'gpt-4o-2024-05-13')
     scene = {'store_firewood':'Ihlen_0_int','bringing_water':'Wainscott_0_garden'}[args.task]
     if not (root / '.runtime/data/og_dataset/scenes' / scene).is_dir():
         raise RuntimeError("Original scene assets are not installed")
@@ -60,8 +68,9 @@ def main():
     metadata = {
         "status": "running", "task": args.task, "scene": scene, "seed": args.seed,
         "fidelity": 'released_default' if args.task=='store_firewood' else 'alternative_released_task_with_cached_scene_deviation',
-        "trials": args.trials, "model": model,
-        "released_model": "gpt-4-turbo", "model_deviation": model != "gpt-4-turbo",
+        "trials": args.trials, "provider": provider, "model": model,
+        "released_provider": "openai", "released_model": "gpt-4-turbo",
+        "provider_deviation": provider != "openai", "model_deviation": model != "gpt-4-turbo",
         "active_view_motion": False,
         "precondition_verification": True, "effect_verification": True,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),

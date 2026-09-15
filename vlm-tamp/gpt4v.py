@@ -2,32 +2,22 @@ from PIL import Image
 from torchvision import transforms
 import base64
 import io
-import requests
 import numpy as np
-import time
-import os
-
-
-DEFAULT_VLM_MODEL = "gpt-4o-2024-05-13"
+from vlm_backends import build_backend
 
 
 class GPT4VAgent:
     def __init__(self):
         self.prompt = "prompts.txt"
         self.planning_prompt = "planning_prompts.txt"
-        self.api_key = os.getenv("OPENAI_API_KEY", "")
-        if not self.api_key:
-            raise RuntimeError("OPENAI_API_KEY must be configured for the released GPT4V path")
+        self.backend = build_backend()
         self.max_tokens = 50
         # self.temperature = self.cfg["temperature"]
         self.to_pil = transforms.ToPILImage()
         self.errors = {}
         self.responses = {}
         self.current_round = 0
-        # The released gpt-4-turbo identifier is no longer available to the
-        # reproduction account. Pin the approved, vision-capable replacement
-        # while allowing explicit experiment metadata to select another model.
-        self.gpt_version = os.getenv("VAPTAMP_OPENAI_MODEL", DEFAULT_VLM_MODEL)
+        self.gpt_version = self.backend.model
         # self.resize = transforms.Resize((self.cfg["img_size"], self.cfg["img_size"]))
 
     def reset(self):
@@ -75,47 +65,9 @@ class GPT4VAgent:
         return chat_input
 
     def _request_gpt4v(self, chat_input, num_questions=-1):
-        from repro_trace import record
-        # Contains exact prompt and encoded model-input image, never auth headers.
-        record('vlm_request', round=self.current_round, payload=chat_input)
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers=headers,
-            json=chat_input,
-            timeout=60,
-        )
-        record('vlm_response', round=self.current_round,
-               http_status=response.status_code,
-               body=response.text.replace(self.api_key, '[REDACTED_API_KEY]'))
-        if not response.ok or not response.text:
-            # API/transport failure is not affirmative visual evidence. Do not
-            # include headers or raw request objects in this exception.
-            raise RuntimeError(f"GPT4V API request failed (HTTP {response.status_code})")
-        json_res = response.json()
-        print('GPT4V response received')
-        if "choices" in json_res:
-            res = json_res["choices"][0]["message"]["content"]
-        elif "error" in json_res:
-            self.errors[self.current_round] = json_res
-            res = "gpt4v API error"
-            if json_res["error"]["code"] == "rate_limit_exceeded":
-                time.sleep(60)
-                return res, True
-            elif json_res["error"]["code"] == None:
-                time.sleep(5)
-                return res, True
-            elif json_res["error"]["code"] == "sanitizer_server_error":
-                raise RuntimeError("GPT4V API sanitizer failure")
-            else:
-                raise RuntimeError
-
-        # the prompt come with "Answer: " prefix
+        res = self.backend.request(chat_input, self.current_round)
+        print(f'{self.backend.provider} VLM response received')
         self.responses[self.current_round] = res
-        # return " ".join(res.split(" ")[1:])
         return res, False
 
     def plan(self, problem, domain):
