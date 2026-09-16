@@ -85,4 +85,17 @@ development. No simultaneous simulator processes are used.
 - 27 local tests pass, including camera projection, invalid-depth rejection,
   identical image bytes across five requests and strict response handling.
 
-Live moving-view results and full-episode acceptance remain to be assessed.
+The constrained-format replay of seed 4 (`20260916T010337794247Z`) completed
+six requests, corrected a false inview predicate, replanned and navigated again.
+The model accepted the initial view as sufficient, so no AP motion occurred.
+A second fixture from seed 5 (`20260916T010555168254Z`) likewise completed six
+requests and a continuation attempt without selecting a new view. These are
+valid no-motion outcomes, not moving-view acceptance evidence.
+
+Next declared test: one full bringing_water debug episode, seed 6, optional
+`--verification-mode paper-adapter`, K=2, 4/5 agreement, 0.25 m motions and a
+600-second process bound. This exposes the adapter to successive current
+predicates without forcing insufficiency or fabricating a failure. It is
+separate from the fixed-view pilot and is not used for a comparative success
+estimate. New AP observations also get first-/third-person videos. Stop and
+diagnose the first interface/motion failure; preserve a timeout as incomplete.

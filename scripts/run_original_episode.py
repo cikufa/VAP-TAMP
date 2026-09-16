@@ -23,7 +23,12 @@ def main():
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--timeout-seconds", type=int, default=1200)
     parser.add_argument('--task', choices=['store_firewood','bringing_water'], default='store_firewood')
+    parser.add_argument('--verification-mode', choices=['released', 'paper-adapter'], default='released')
+    parser.add_argument('--paper-budget-k', type=int, choices=range(4), default=2)
+    parser.add_argument('--paper-consistent-votes', type=int, choices=[4, 5], default=4)
     args = parser.parse_args()
+    if args.verification_mode == 'paper-adapter' and args.task != 'bringing_water':
+        raise ValueError('Paper adapter vocabulary is currently audited only for bringing_water')
     root = Path(__file__).resolve().parents[1]
     prefix = root / ".runtime/envs/vaptamp-repro"
     if Path(sys.prefix).resolve() != prefix.resolve():
@@ -65,6 +70,9 @@ def main():
         "VAPTAMP_TRACE_DIR": str(out / "trace"),
         "OMNIGIBSON_HEADLESS": "True",
         "MPLBACKEND": "Agg",
+        'VAPTAMP_PAPER_VERIFICATION': '1' if args.verification_mode == 'paper-adapter' else '0',
+        'VAPTAMP_PAPER_BUDGET_K': str(args.paper_budget_k),
+        'VAPTAMP_PAPER_CONSISTENT_VOTES': str(args.paper_consistent_votes),
     })
     metadata = {
         "status": "running", "task": args.task, "scene": scene, "seed": args.seed,
@@ -72,7 +80,12 @@ def main():
         "trials": args.trials, "provider": provider, "model": model,
         "released_provider": "openai", "released_model": "gpt-4-turbo",
         "provider_deviation": provider != "openai", "model_deviation": model != "gpt-4-turbo",
-        "active_view_motion": False,
+        'verification_mode': args.verification_mode,
+        'verification_deviation': args.verification_mode != 'released',
+        'paper_adapter_parameters': (dict(budget_k=args.paper_budget_k,
+             consistent_votes=args.paper_consistent_votes, motion_metres=.25)
+             if args.verification_mode == 'paper-adapter' else None),
+        "active_view_motion": args.verification_mode == 'paper-adapter',
         "precondition_verification": True, "effect_verification": True,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
         "dirty_worktree": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=root, text=True)),

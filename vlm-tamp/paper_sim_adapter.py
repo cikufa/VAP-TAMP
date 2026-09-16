@@ -49,6 +49,8 @@ class PaperSimVerifier:
         self.log = scope['record']
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
+        (self.output / 'first_person').mkdir()
+        (self.output / 'third_person').mkdir()
         self.budget_k, self.consistent_votes = budget_k, consistent_votes
         if not 0 < motion_metres <= .5:
             raise ValueError('Inspection motion must be between zero and 0.5 metres')
@@ -88,14 +90,17 @@ class PaperSimVerifier:
                 observed[name] = dict(anchor=np.median(points, axis=0).tolist(),
                                       observed_points=len(points), source='sensor_depth_instance_mask',
                                       observation=self.index)
-        path = self.output / f'view_{self.index:03d}.png'
+        path = self.output / 'first_person' / f'{self.index}.png'
         Image.fromarray(rgb).save(path)
+        third_person = self.output / 'third_person' / f'{self.index}.png'
+        Image.fromarray(self.scope['get_tpv_rgb']()).save(third_person)
         np.savez_compressed(self.output / f'view_{self.index:03d}.npz', depth=depth,
                             instance_segmentation=segmentation, camera_position=position,
                             camera_rotation=rotation, focal_pixels=focal)
         observation = dict(rgb=rgb, index=self.index, objects=observed, image=str(path),
                            pixel_sha256=hashlib.sha256(rgb.tobytes()).hexdigest())
         self.log('paper_sensor_observation', index=self.index, image=str(path),
+                 third_person=str(third_person),
                  pixel_sha256=observation['pixel_sha256'], camera_position=position.tolist(),
                  camera_rotation=rotation.tolist(), observed_objects=observed)
         self.index += 1

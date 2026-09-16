@@ -1305,6 +1305,14 @@ while trial_counter < NUM_TRIALS:
         PICK_OBJ_HEIGHT = 2.8
 
     problem_file = init_problem_file
+    paper_verifier = None
+    if _repro_bool('VAPTAMP_PAPER_VERIFICATION', False):
+        from paper_sim_adapter import PaperSimVerifier
+        paper_verifier = PaperSimVerifier(
+            globals(), vlm_agent, os.path.join(trial_dir, 'paper_views'),
+            budget_k=int(os.environ['VAPTAMP_PAPER_BUDGET_K']),
+            consistent_votes=int(os.environ['VAPTAMP_PAPER_CONSISTENT_VOTES']),
+            motion_metres=.25)
     record('trial_start', trial=trial_counter, task=a_name,
            simulator_state=simulator_state(env, obj_held, onfloor_relationships))
     terminate = False
