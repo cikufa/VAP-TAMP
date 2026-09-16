@@ -140,6 +140,12 @@ class GeminiBackend:
         }
         if system_parts:
             payload["systemInstruction"] = {"parts": system_parts}
+        if 'response_enum' in chat_input:
+            choices = chat_input['response_enum']
+            if not isinstance(choices, list) or not choices or not all(isinstance(x, str) for x in choices):
+                raise ValueError('response_enum must be a nonempty list of strings')
+            payload['generationConfig'].update(
+                responseMimeType='text/x.enum', responseSchema={'type': 'STRING', 'enum': choices})
         return payload
 
     def request(self, chat_input, round_number):

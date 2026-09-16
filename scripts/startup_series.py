@@ -57,7 +57,9 @@ def main():
     probe_copy.write_bytes(probe_source)
     (out/'native_stage_trace.py').write_bytes((ROOT/'scripts/native_stage_trace.py').read_bytes())
     (out/'task_load_trace.py').write_bytes((ROOT/'scripts/task_load_trace.py').read_bytes())
-    for relative in ('scripts/released_actions_smoke.py', 'vlm-tamp/fetch_camera_compat.py', 'vlm-tamp/primitive_compat.py', 'vlm-tamp/eval.py'):
+    for relative in ('scripts/released_actions_smoke.py', 'vlm-tamp/fetch_camera_compat.py', 'vlm-tamp/primitive_compat.py', 'vlm-tamp/eval.py',
+                     'scripts/paper_adapter_smoke.py', 'vlm-tamp/paper_sim_adapter.py',
+                     'vlm-tamp/paper_verification.py', 'vlm-tamp/vlm_backends.py', 'vlm-tamp/gpt4v.py'):
         (out/Path(relative).name).write_bytes((ROOT/relative).read_bytes())
     source_sha256=hashlib.sha256(probe_source).hexdigest()
     print('STARTUP_SERIES',out,flush=True)
@@ -83,6 +85,7 @@ def main():
         report['released_lookat_requested']=env.get('VAPTAMP_PROBE_LOOKAT')=='1'
         report['released_actions_requested']=env.get('VAPTAMP_PROBE_ACTIONS')=='1'
         report['moved_object_probe_requested']=bool(env.get('VAPTAMP_PROBE_MOVED_OBJECT'))
+        report['paper_adapter_probe_requested']=env.get('VAPTAMP_PROBE_PAPER_AP')=='1'
         command=[sys.executable,'-u',str(probe_copy)]
         if args.task:command += ['--task',args.task]
         if env.get('VAPTAMP_NATIVE_STRACE') == '1':
@@ -126,6 +129,8 @@ def main():
             report['success'] = report['success'] and 'scripted_plan_completed' in phase
         if report['moved_object_probe_requested']:
             report['success'] = report['success'] and 'moved_object_probe_completed' in phase
+        if report['paper_adapter_probe_requested']:
+            report['success'] = report['success'] and 'paper_adapter_probe_completed' in phase
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1' or env.get('VAPTAMP_SCENE_MODEL'):
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':

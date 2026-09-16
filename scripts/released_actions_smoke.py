@@ -46,6 +46,10 @@ def run(root, out, env, event):
     if os.getenv('VAPTAMP_PROBE_MOVED_OBJECT'):
         check_moved_object(root, env, scope, event)
         return
+    if os.getenv('VAPTAMP_PROBE_PAPER_AP') == '1':
+        from paper_adapter_smoke import run as run_paper_probe
+        run_paper_probe(root, work, env, scope, event)
+        return
     domain = root / 'vlm-tamp/domains/bringing_water/domain.pddl'
     problem = root / 'vlm-tamp/domains/bringing_water/problem.pddl'
     planner = scope['pddlsim'](str(domain))

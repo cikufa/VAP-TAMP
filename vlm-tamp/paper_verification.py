@@ -4,6 +4,7 @@ This is not an executable simulation or a validated active-perception baseline.
 The inclusive final navigation follows the printed pseudocode literally.
 """
 from dataclasses import dataclass
+import re
 
 
 @dataclass(frozen=True)
@@ -19,10 +20,13 @@ class VerificationResult:
 
 
 def binary_response(answer):
-    normalized=answer.strip().lower()
-    if normalized not in ('yes','no'):
+    # The appendix sufficiency template ends in "Answer:". Some providers
+    # echo that field label. Accept only a single unambiguous binary value;
+    # retain the raw response in the caller's event before this normalization.
+    match = re.fullmatch(r'(?:answer:\s*)?(yes|no)', answer.strip(), re.IGNORECASE)
+    if match is None:
         raise ValueError('Paper verification requires a binary response; raw output must be retained')
-    return normalized=='yes'
+    return match.group(1).lower() == 'yes'
 
 
 def verify_predicate(predicate, observation, graph, *, budget_k, consistent_votes,

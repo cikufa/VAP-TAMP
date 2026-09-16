@@ -123,6 +123,7 @@ vlm_agent = GPT4VAgent()
 # Active perception module (initialized if needed)
 active_perception_module = None
 USE_ACTIVE_PERCEPTION = False
+paper_verifier = None  # Opt-in paper adapter; released fixed-view default is unchanged.
 
 # from claude3 import Claude3Agent
 # vlm_agent = Claude3Agent()
@@ -1018,7 +1019,10 @@ def check_states_and_update_problem(
     print(f"next action preconditions: {facts_nl[pre_start_idx:]}")
 
     if len(facts_nl) > 0:
-        is_match_results = vlm_agent.ask(";".join(facts_nl), get_fpv_rgb())
+        if paper_verifier is not None:
+            is_match_results = paper_verifier.verify_many(valid_facts, states)
+        else:
+            is_match_results = vlm_agent.ask(";".join(facts_nl), get_fpv_rgb())
     else:
         is_match_results = []
 
@@ -1123,6 +1127,9 @@ def check_states_and_update_problem(
     else:
         updated_problem_file = write_states_into_problem(states, previous_problem)
 
+    if paper_verifier is not None:
+        paper_verifier.graph['facts'] = [state.strip() for state in states]
+        record('paper_symbolic_state_updated', facts=paper_verifier.graph['facts'])
     record('verification', trial=trial_counter, action_count=action_counter,
            current_action=cur_action, next_action=next_action,
            input_states=int_states, effects=effs, preconditions=pres,

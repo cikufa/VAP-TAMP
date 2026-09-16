@@ -4,10 +4,17 @@ import sys
 import unittest
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'vlm-tamp'))
-from paper_verification import verify_predicate
+from paper_verification import verify_predicate, binary_response
 
 
 class PaperControlFlow(unittest.TestCase):
+    def test_echoed_answer_label_is_unambiguous_but_explanations_are_rejected(self):
+        self.assertFalse(binary_response('Answer: no'))
+        self.assertTrue(binary_response('answer: YES'))
+        for answer in ('no because occluded', 'Answer: yes or no', 'probably yes', 'skip'):
+            with self.assertRaises(ValueError):
+                binary_response(answer)
+
     def run_case(self,answers,sufficiency,agreement=4,k=1):
         events=[];images=[];responses=iter(answers);suff=iter(sufficiency)
         initial=object();new=object()

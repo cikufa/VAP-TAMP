@@ -227,7 +227,8 @@ try:
                 if isinstance(data, dict) and 'rgb' in data:
                     Image.fromarray(np.asarray(data['rgb'])[..., :3].astype(np.uint8)).save(probe_dir / (sensor + '_after_lookat.png'))
             event('primitive_completed', joints_before=before.tolist(), joints_after=after.tolist())
-        if os.getenv('VAPTAMP_PROBE_ACTIONS') == '1' or os.getenv('VAPTAMP_PROBE_MOVED_OBJECT'):
+        if (os.getenv('VAPTAMP_PROBE_ACTIONS') == '1' or os.getenv('VAPTAMP_PROBE_MOVED_OBJECT')
+                or os.getenv('VAPTAMP_PROBE_PAPER_AP') == '1'):
             sys.path.insert(0, str(root / 'scripts'))
             from released_actions_smoke import run
             run(root, probe_dir, env, event)
