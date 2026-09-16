@@ -1,0 +1,34 @@
+#usda 1.0
+(
+    defaultPrim = "connector"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+def Xform "connector" {
+    def Xform "base_link" (
+        prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+    ) {
+        bool physics:rigidBodyEnabled = true
+        float physics:mass = 0.08
+        def Cube "grip_body" (prepend apiSchemas = ["PhysicsCollisionAPI"]) {
+            double size = 1
+            double3 xformOp:scale = (0.070, 0.060, 0.040)
+            uniform token[] xformOpOrder = ["xformOp:scale"]
+            color3f[] primvars:displayColor = [(0.18, 0.23, 0.26)]
+        }
+        def Cube "mating_tongue" (prepend apiSchemas = ["PhysicsCollisionAPI"]) {
+            double size = 1
+            double3 xformOp:translate = (0.065, 0, 0)
+            double3 xformOp:scale = (0.080, 0.045, 0.028)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            color3f[] primvars:displayColor = [(0.28, 0.31, 0.33)]
+        }
+        def Cube "polarizing_key" (prepend apiSchemas = ["PhysicsCollisionAPI"]) {
+            double size = 1
+            double3 xformOp:translate = (0.065, 0.012, 0.018)
+            double3 xformOp:scale = (0.070, 0.010, 0.008)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            color3f[] primvars:displayColor = [(0.34, 0.37, 0.39)]
+        }
+    }
+}
