@@ -1,7 +1,7 @@
 {
   "status": "FROZEN CONNECTOR BENCHMARK",
   "schema": 1,
-  "implementation_commit": "5845d2a8459b14c8a6ec09d99ef96b4d2d22d93e",
+  "implementation_commit": "df227f2d28576aace83d5b5b7f456efed24c0bd9",
   "baseline_commit": "c31572043f7e1979033d2972e0e7e56f587a00f7",
   "vlm_provider": "gemini",
   "vlm_model": "gemini-3.5-flash-lite",
@@ -44,7 +44,7 @@
     "scripts/connector_entry.py": "c4a5b03dea182a5d3e6c7fe4c23a29ea81c340afe8884915185555caa1845401",
     "scripts/connector_launch.py": "2b4c0577918c49361eec6ecf741d064f1a1e579f0e37347f30ad0c9f03d6e32e",
     "scripts/connector_native_worker.py": "e630e0dad8050a5e47bdb39fdb1532021640628daf3b9c79435ae52f30770086",
-    "scripts/engine_runtime.sh": "48da6cd20f373d6b65fa268b5500a5d3bc476534e7cc8ba4e4e52bf44afe52c7",
+    "scripts/engine_runtime.sh": "624231ce4edb3d38a108f96ea6e60ff1055f656109261b4b93acf9dc35122b2c",
     "scripts/evaluate_connector_handoff.py": "f129a5ddf5fc43aece454fabec4122a0857923636fffee2a1ae9fb6af522bea5",
     "scripts/native_runtime.py": "a9ce9c75a21f364ea9356ca316e1d7a27285d564dc8b6f910eeb5328504a9a90",
     "scripts/project_runtime.sh": "ee69a0d787f3f1b32cfb7c5a04b6a34026d0c1f05b5bb55d89c99ab7609341b1",
