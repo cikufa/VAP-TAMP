@@ -9,12 +9,12 @@
   "connector_initial": [
     0.43,
     0.0,
-    0.905
+    0.835
   ],
   "connector_staging": [
     0.43,
     0.0,
-    1.04
+    0.94
   ],
   "socket_entry_x": 0.72,
   "socket_center_z": 0.94,
@@ -22,11 +22,11 @@
   "grasp_offset": 0.095,
   "fixture_y": 0.1,
   "fixture_size": [
-    0.12,
+    0.31,
     0.045,
-    0.16
+    0.08
   ],
-  "fixture_x": 0.65,
+  "fixture_x": 0.745,
   "robot_position": [
     0.1,
     0,
@@ -48,5 +48,7 @@
   "path_step": 0.005,
   "connector_tip_offset": 0.105,
   "initial_trunk_position": 0.28,
-  "orientation_tolerance_degrees": 5.0
+  "orientation_tolerance_degrees": 5.0,
+  "fixture_z": 0.98,
+  "grasp_lift": 0.105
 }

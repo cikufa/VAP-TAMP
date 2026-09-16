@@ -1,0 +1,10 @@
+{
+  "LEFT_CONSTRAINED": {
+    "gL": 0.0,
+    "gR": 1.0
+  },
+  "RIGHT_CONSTRAINED": {
+    "gL": 1.0,
+    "gR": 0.0
+  }
+}

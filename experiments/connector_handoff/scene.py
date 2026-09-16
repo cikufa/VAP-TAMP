@@ -18,8 +18,8 @@ def configuration():
     z = SPEC['socket_center_z']
     objects = [
         dict(cube('assembly_floor', [8.,8.,.06], [0,0,-.03], [.65,.65,.65]), category='floors'),
-        cube('grasp_nest', [.012,.025,.22], [.403,0,.775], [.5,.5,.5]),
-        cube('tongue_nest', [.018,.025,.226], [.495,0,.778], [.5,.5,.5]),
+        cube('grasp_nest', [.012,.025,.15], [.403,0,.740], [.5,.5,.5]),
+        cube('tongue_nest', [.018,.025,.156], [.495,0,.743], [.5,.5,.5]),
         cube('bench', [.75, .60, .06], [.63, 0, .635], [.32, .34, .36]),
         cube('bench_leg_left', [.07, .07, .72], [.75, .25, .36], [.25, .27, .30]),
         cube('bench_leg_right', [.07, .07, .72], [.75, -.25, .36], [.25, .27, .30]),
@@ -29,8 +29,8 @@ def configuration():
         cube('socket_left', [.15, .025, .053], [.795, .063, z], [.48, .50, .52]),
         cube('socket_right', [.15, .025, .053], [.795, -.063, z], [.48, .50, .52]),
         cube('panel', [.03, .50, .45], [.91, 0, .92], [.37, .40, .43]),
-        cube('fixture', SPEC['fixture_size'], [SPEC['fixture_x'], SPEC['fixture_y'], z], [.40, .42, .44]),
-        cube('hood_roof', [.42, .44, .018], [.73, 0, 1.04], [.42, .44, .46]),
+        cube('fixture', SPEC['fixture_size'], [SPEC['fixture_x'], SPEC['fixture_y'], SPEC['fixture_z']], [.40, .42, .44]),
+        cube('hood_roof', [.48, .26, .018], [.70, 0, 1.04], [.42, .44, .46]),
     ]
     return dict(scene=dict(type='Scene', use_skybox=False, use_floor_plane=False),
                 robots=[dict(type='Fetch', name='robot0', position=SPEC['robot_position'],
@@ -65,6 +65,14 @@ class ConnectorScene:
         look_at_fetch(self.robot, np.array(SPEC['initial_look_target']))
         self.initial_joints = self.robot.get_joint_positions().copy()
         self.set_viewer()
+        from omnigibson.utils.usd_utils import create_joint
+        self.connector.set_position_orientation(np.array(SPEC['connector_initial']),np.array([0.,0.,0.,1.]))
+        self.nest_joint=create_joint('/World/connector_nest_joint','FixedJoint',
+            body1=self.connector.root_link.prim_path,
+            joint_frame_in_parent_frame_pos=np.array(SPEC['connector_initial']),
+            joint_frame_in_parent_frame_quat=np.array([0.,0.,0.,1.]),
+            joint_frame_in_child_frame_pos=np.zeros(3),
+            joint_frame_in_child_frame_quat=np.array([0.,0.,0.,1.]))
         self.saved = og.sim.dump_state(serialized=False)
         log('scene_ready', object_poses={k:v.get_position().tolist() for k,v in self.objects.items()}, objects=list(self.objects), joints=list(self.robot.joints),
             eef_link=self.robot.eef_link_names, eef_pose=[x.tolist() for x in self.robot.get_eef_position_orientation('0')]
@@ -82,11 +90,17 @@ class ConnectorScene:
 
     def reset(self, condition, seed):
         if condition not in CONDITIONS: raise ValueError(condition)
+        import random
+        random.seed(seed);np.random.seed(seed)
         self.og.sim.load_state(self.saved, serialized=False)
+        self.nest_joint.GetAttribute('physics:jointEnabled').Set(True)
+        self.robot.set_joint_positions(self.initial_joints)
+        self.robot.set_joint_positions(self.initial_joints,drive=True)
         # The condition is never stored on the scene object consumed by online code.
         side = 1 if condition == CONDITIONS[0] else -1
-        self.objects['fixture'].set_position(np.array([SPEC['fixture_x'], side*SPEC['fixture_y'], SPEC['socket_center_z']]))
+        self.objects['fixture'].set_position(np.array([SPEC['fixture_x'], side*SPEC['fixture_y'], SPEC['fixture_z']]))
         for _ in range(5): self.og.sim.step()
+        assert np.linalg.norm(self.connector.get_position()-np.array(SPEC['connector_initial']))<.001, 'Feed nest did not hold initial workpiece pose'
         self.log('scene_reset', evaluation_only={'scene_condition': condition, 'seed':seed})
 
     def capture(self):
