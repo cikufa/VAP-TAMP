@@ -6,7 +6,10 @@ export PATH="$CONDA_PREFIX/bin:$PATH"
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib"
 source "$VAPTAMP_ROOT/.runtime/native/isaac-sim/setup_conda_env.sh"
 # Prefer the dedicated environment's packages over bundled Python dependencies.
-export PYTHONPATH="$CONDA_PREFIX/lib/python3.10/site-packages:$PYTHONPATH"
+# Include the project-local OmniGibson checkout explicitly. The Conda editable
+# install records an absolute source path, which becomes stale if this otherwise
+# self-contained repository is moved.
+export PYTHONPATH="$VAPTAMP_ROOT/.runtime/OmniGibson:$CONDA_PREFIX/lib/python3.10/site-packages:$PYTHONPATH"
 export XDG_CONFIG_HOME="$VAPTAMP_ROOT/.runtime/config"
 export XDG_DATA_HOME="$VAPTAMP_ROOT/.runtime/user-data"
 export CUDA_CACHE_PATH="$VAPTAMP_ROOT/.runtime/cache/cuda"
