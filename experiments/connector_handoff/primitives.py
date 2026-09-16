@@ -177,16 +177,19 @@ class ConnectorPrimitives:
         return hits
 
     def station(self):
-        target=np.array(SPEC['robot_position']);before,orientation=self.robot.get_position_orientation()
-        target[2]=before[2]
-        if np.linalg.norm(target-before)<.01:return True
+        target=np.array(SPEC['robot_position']);target_orientation=np.array(SPEC['robot_orientation'])
+        before,before_orientation=self.robot.get_position_orientation()
+        if np.linalg.norm(target-before)<.01:
+            self.robot.set_position_orientation(target,target_orientation)
+            return True
         # Fixed work-station approach, independent of fixture state and grasp choice.
         for point in np.linspace(before,target,max(2,int(np.ceil(np.linalg.norm(target-before)/.025)))+1)[1:]:
-            old=self.robot.get_position().copy();self.robot.set_position(point)
+            old,old_orientation=self.robot.get_position_orientation()
+            self.robot.set_position_orientation(point,target_orientation)
             hits=self.candidate_collisions()
             if hits:
-                self.robot.set_position(old);self.log('motion_failure',reason='station_path_collision',contacts=hits);return False
-            if self.held is not None:self.held.set_position(self.held.get_position()+point-old)
+                self.robot.set_position_orientation(old,old_orientation)
+                self.log('motion_failure',reason='station_path_collision',contacts=hits);return False
             self.og.sim.step()
         self.log('station_approach',position_before=before.tolist(),position_after=self.robot.get_position().tolist())
         self.frame();return True

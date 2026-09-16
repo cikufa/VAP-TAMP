@@ -25,6 +25,19 @@ def run(mode,scene,out,log):
         from .observability import run as observe
         observe(scene,out,log);return
     primitive=ConnectorPrimitives(scene,log)
+    if mode=='return_validation':
+        from paper_sim_adapter import PaperSimVerifier
+        from .observability import scope_for
+        scene.reset('RIGHT_CONSTRAINED',0)
+        grasped=primitive.grasp('gL')
+        scope=scope_for(scene,log);scope['obj_held']=None
+        adapter=PaperSimVerifier(scope,None,out/'paper_views',budget_k=2,consistent_votes=4,motion_metres=.25)
+        moved=adapter.navigate('closer',['side_clear_left','socket']) if grasped else False
+        returned=primitive.return_connector() if moved else False
+        log('return_validation',grasped=grasped,camera_motion=moved,returned=returned,
+            connector_position=scene.connector.get_position().tolist(),robot_position=scene.robot.get_position().tolist())
+        assert grasped and moved and returned
+        return
     if mode=='clearance':
         hits=primitive.candidate_collisions();log('clearance_diagnostic',minimum_clearance=primitive.minimum_clearance,contacts=hits)
         assert np.isfinite(primitive.minimum_clearance) and 0<=primitive.minimum_clearance<3

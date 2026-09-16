@@ -27,6 +27,10 @@ def run(scene,out,mode,script,seed,condition):
     else:raise ValueError('Only explicit LIVE or MOCK API boundary modes are allowed')
     agent.prompt=str(ROOT/'vlm-tamp/prompts.txt')
     scope=scope_for(scene,rec.log)
+    # This task uses a native fixed joint, so base teleports already carry the
+    # connector. Keep the verifier's compatibility-only held-object translation
+    # disabled; physical holding state still comes from primitive.held below.
+    scope['obj_held']=None
     gt_predicates=['handempty','holding','held_left_configuration','held_right_configuration','available']
     def gt(facts):
         result=[]
@@ -46,7 +50,7 @@ def run(scene,out,mode,script,seed,condition):
         elif name=='return_connector':primitive.return_connector()
         elif name=='find':primitive.find(action[2])
         else:raise ValueError('Unmapped task primitive '+name)
-        scope['obj_held']=primitive.held
+        scope['obj_held']=None
         rec.frame()
     def simulator_state(*args):
         return dict(connector_pose=[v.tolist() for v in scene.connector.get_position_orientation()],
