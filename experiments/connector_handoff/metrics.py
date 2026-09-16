@@ -112,9 +112,10 @@ def evaluate(path,compatibility=None,counterfactual=None):
 
 
 def aggregate(rows):
-    if any(x['mode']=='MOCK' for x in rows):
-        if any(x['mode']=='LIVE' for x in rows):raise ValueError('Cannot mix mock and live trials')
-        return dict(label='NON-SCIENTIFIC MOCK VLM RUN',scientific_metrics_computed=False,plumbing_episodes=rows)
+    if any(x['mode']!='LIVE' for x in rows):
+        if any(x['mode']=='LIVE' for x in rows):raise ValueError('Cannot mix validation and live trials')
+        label='NON-SCIENTIFIC MOCK VLM RUN' if any(x['mode']=='MOCK' for x in rows) else 'OFFLINE PHYSICS VALIDATION'
+        return dict(label=label,scientific_metrics_computed=False,plumbing_episodes=rows)
     usable=[x for x in rows if x['completed'] and x['category']!='J'];n=len(usable)
     rate=lambda pred:sum(bool(pred(x)) for x in usable)/n if n else None
     mean=lambda key:sum(vals)/len(vals) if (vals:=[x[key] for x in usable if x.get(key) is not None]) else None

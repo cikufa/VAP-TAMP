@@ -35,6 +35,9 @@ class ConnectorMetricsTests(unittest.TestCase):
     def test_api_failure_excluded(self):
         row=self.measure([self.start(),dict(event='episode_end',physical_success=False,infrastructure_error=True)])
         self.assertEqual(row['category'],'J');self.assertEqual(aggregate([row])['completed_eligible'],0)
+    def test_counterfactual_is_not_a_live_trial(self):
+        self.assertFalse(aggregate([dict(mode='COUNTERFACTUAL')])['scientific_metrics_computed'])
+        with self.assertRaises(ValueError):aggregate([dict(mode='COUNTERFACTUAL'),dict(mode='LIVE')])
     def test_mock_never_scientific_metrics(self):
         self.assertFalse(aggregate([dict(mode='MOCK')])['scientific_metrics_computed'])
         with self.assertRaises(ValueError):aggregate([dict(mode='MOCK'),dict(mode='LIVE')])

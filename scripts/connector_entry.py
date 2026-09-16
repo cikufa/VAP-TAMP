@@ -17,7 +17,8 @@ def validation_cli(mode):
     code=native(mode,output,a.timeout,{'CONNECTOR_REPEATS':a.repeats})
     if code==0 and mode in ('physics_validation','grasp_validation'):
         import shutil
-        shutil.copyfile(output/'physics_validation.csv',ROOT/'results/custom_connector/physics_validation.csv')
+        destination='physics_validation.csv' if mode=='physics_validation' else 'grasp_validation.csv'
+        shutil.copyfile(output/'physics_validation.csv',ROOT/'results/custom_connector'/destination)
         sys.path.insert(0,str(ROOT))
         from experiments.connector_handoff.media import render_all
         for episode in sorted(output.glob('00_*')):render_all(episode)

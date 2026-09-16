@@ -48,7 +48,7 @@ def main():
     counter=read(cf);gates['exact_counterfactual_replay']=counter['exact_saved_state_loaded'] and counter['alternate_grasp_success'] and counter['alternate_insert_success'] and counter['source_mode']=='MOCK'
     gates['counterfactual_video']=(cf.parent/'episode/episode.mp4').exists()
     gates['pddl_VAL']=len(read(base/'benchmark_validation/pddl/validation.json'))==3
-    gates['unit_tests']='Ran 40 tests' in (base/'unit_tests.log').read_text() and '\nOK\n' in (base/'unit_tests.log').read_text()
+    gates['unit_tests']='Ran 41 tests' in (base/'unit_tests.log').read_text() and '\nOK\n' in (base/'unit_tests.log').read_text()
     seeds=read(ROOT/'experiments/connector_handoff/eval_seeds.json')
     gates['frozen_balanced_seeds']=len(seeds['trials'])==20 and all(sum(t['condition']==c for t in seeds['trials'])==10 for c in ('LEFT_CONSTRAINED','RIGHT_CONSTRAINED'))
     runs=[physics,observation,mock/'trial_logs/straight',mock/'trial_logs/replan',cf.parent]
