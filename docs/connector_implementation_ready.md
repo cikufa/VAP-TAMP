@@ -107,6 +107,18 @@ The debug timeout defaults to 900 seconds and can be shortened with
 `--debug-timeout`; the 20 scientific trials retain the separate 1800-second
 default.
 
+The task also has a no-API native recovery regression for the attached connector:
+
+```bash
+source scripts/engine_runtime.sh
+python scripts/connector_launch.py --mode return_validation \
+  --output results/custom_connector/benchmark_validation/return/manual_check \
+  --timeout 300
+```
+
+This covers the physical sequence `grasp → active camera move → return → release`
+that is used when verification causes a grasp-side change.
+
 One-command analysis, including missing offline counterfactuals:
 
 ```bash

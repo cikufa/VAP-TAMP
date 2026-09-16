@@ -78,3 +78,23 @@ responses, parsed votes, and parsed verification. Across the pair, the runner
 also requires a real camera motion, symbolic correction, and replanning. These
 checks remain separate from scientific acceptance: a scientific attempt is
 accepted only after a normal episode end without an infrastructure error.
+
+## Post-freeze attached-object motion fix
+
+The first `episode_000` attempt was stopped and excluded after five identical
+`return_connector` failures. The trace isolated the cause: the custom connector
+uses a native fixed joint, while the generic active-perception adapter's
+compatibility path also translated `obj_held` during a base move. The duplicate
+translation displaced the connector and destabilized the robot pose, leaving an
+unreachable return target. Commit `a87360b` keeps that compatibility variable
+unset in this custom task, restores the fixed workstation pose and orientation
+before return, and adds a native regression mode. It does not alter prompts,
+VLM answers, PDDL, action selection, task geometry, metrics, or any file under
+`vlm-tamp`.
+
+The exact committed regression performs native left grasp, a 0.25 m active camera
+move, return, and release. It passed in 36.65 seconds with no remaining process;
+`release_complete` reported success and the connector returned to
+`[0.4300000072, 0.0000000013, 0.8349999785]`. The interrupted live attempt remains
+preserved as infrastructure/debug evidence and will be retried from its frozen
+seed; it is not a selected scientific result.
