@@ -10,7 +10,7 @@ def image_requests(path,live=False):
     requests=[x for x in trace if x['event']=='vlm_request']
     for request in requests:
         if live and request['provider']=='mock':raise AssertionError('Mock backend in LIVE episode')
-        payload=request.get('source_contract',request['payload'])
+        payload=request['source_contract'] if 'source_contract' in request else request['payload']
         part=next(p for p in payload['messages'][-1]['content'] if p['type']=='image_url')
         rgb=np.asarray(Image.open(io.BytesIO(base64.b64decode(part['image_url']['url'].split(',',1)[1]))))
         bound=bindings[request['round']];obs=observations[bound['observation']]
