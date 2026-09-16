@@ -31,3 +31,14 @@ order is preserved, including any prospective behavior it may naturally produce.
 
 Domain ordering is fixed at first creation. Fast Downward tie-breaking will be
 recorded without randomizing or reordering actions in response to outcomes.
+
+## Unary-precondition interface compatibility
+
+The installed PDDL parser simplifies `(and (holding ?a ?c))` to a single Predicate
+and `(and (not ...))` to a Not node. The released wrapper assumed `.operands` on
+all preconditions. `LoggedPlanner.get_preconditions_by_action` normalizes only
+this single-literal case into a one-element list and invokes the released fact
+formatter. Conjunctions still call the released method. This is a task-agnostic
+syntax compatibility wrapper; it does not add facts, change costs, planner search,
+verification ordering, or action applicability. Positive and negative unary cases
+are covered by tests. No baseline source file is edited.

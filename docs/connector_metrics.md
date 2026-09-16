@@ -29,7 +29,9 @@ A completed task failure is retained, never retried to select a success.
   predicate question, not the later aggregate-vote timestamp.
 - T_successor_view: acquisition time of the first geometrically useful camera
   observation, after an actual AP move, that is bound to a successor-predicate
-  image request. Connector-only checks and movement alone never count.
+  image request or follows an AP move requested for that predicate's region. Connector-only checks and movement alone never count. The literal baseline's
+  final unvoted AP image counts as acquired if useful; `successor_view_was_queried`
+  distinguishes acquisition from subsequent use.
 - T_insert: first native `insert_started` event.
 
 PROSPECTIVE means T_view < T_grasp; REACTIVE means grasp < view < insert (or no

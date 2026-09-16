@@ -20,8 +20,17 @@ def evaluate(path,compatibility=None,counterfactual=None):
     motions=[x for x in e if x['event']=='paper_motion_executed']
     bindings={x['round']:x['observation'] for x in e if x['event']=='paper_query_observation'}
     inspected={bindings.get(x['round']) for x in requests if successor_request(x)}
-    # Require an actual successor-predicate image request, geometric visibility,
-    # and an earlier AP move. A generic movement/connector check never qualifies.
+    queried_ids=set(inspected)
+    # The literal baseline can acquire a final image without voting on it.
+    # Count that acquisition if the preceding AP move inspected a successor region,
+    # and report whether it was ever queried separately.
+    for motion in motions:
+        vote=next((x for x in reversed(e[:motion['sequence']]) if x['event']=='paper_votes_raw'),None)
+        if vote and any(str(v).startswith('side_clear_') for v in vote.get('predicate',[])):
+            following=next((x for x in observations if x['sequence']>motion['sequence']),None)
+            if following:inspected.add(following['index'])
+    # Require an inspected successor region, geometric visibility and an AP move.
+    # Generic movement/connector checks never qualify.
     view=next((x for x in observations if x['index'] in inspected and x.get('evaluation_only',{}).get('visually_relevant') and
                any(m['sequence']<x['sequence'] for m in motions)),None)
     t=lambda x:None if x is None else x['seconds']
@@ -90,6 +99,7 @@ def evaluate(path,compatibility=None,counterfactual=None):
         final_success=final,grasp_choice=chosen,initial_planner_grasp=initial_choice,decision_changed=changed,
         decision_change_attribution='Temporal observation → correction → plan → different executed grasp; not causal intervention',
         T_grasp=tg,T_successor_query=t(query),T_successor_view=tv,T_insert=ti,timing=timing,
+        successor_relevant_view=view is not None,successor_view_was_queried=bool(view and view['index'] in queried_ids),
         late_after_failed_insert=bool(timing=='VERY_LATE' and any(x['seconds']<tv and not x.get('insert_success') for x in first_results)),
         chosen_handoff_value=value,oracle_best_handoff_value=best,
         handoff_regret=None if best is None or value is None else best-value,
