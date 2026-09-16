@@ -1,6 +1,6 @@
 # FROZEN CONNECTOR BENCHMARK
 
-Implementation commit: **`ff2fa70eabe5ef6328eb4e21bfd40571c658c911`**.
+Implementation commit: **`5845d2a8459b14c8a6ec09d99ef96b4d2d22d93e`**.
 Baseline commit: **`c31572043f7e1979033d2972e0e7e56f587a00f7`**.
 Physical acceptance checkpoint: `01d348a`.
 
@@ -42,3 +42,14 @@ based on performance.
 The inherited Gemini provider/model and reconstructed Algorithm 2 limitations
 remain documented. This is a custom benchmark on the accepted reproduction,
 not an exact artifact-level replication of the original paper.
+
+## Post-freeze relocation fix
+
+On 2026-09-16, the first live debug launch failed before OmniGibson startup
+because the repository had moved from `/home/shekoufeh/VAP_TAMP` to
+`/home/shekoufeh/seq-manip/VAP_TAMP`, while Conda's editable-install metadata
+still contained the old absolute path. Commit `5845d2a` makes the isolated
+runtime prepend its current project-local `.runtime/OmniGibson` checkout to
+`PYTHONPATH`. This changes no scene, seed, PDDL, camera, action, metric, VLM,
+or decision logic. The failed attempt remains preserved as infrastructure-only
+evidence and is excluded from scientific results.

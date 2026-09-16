@@ -10,7 +10,7 @@ Mock behavior establishes software integration only.
 | # | Item | Result |
 |---|---|---|
 | 1 | Baseline SHA | `c31572043f7e1979033d2972e0e7e56f587a00f7`; accepted by explicit user instruction |
-| 2 | Connector implementation SHA | `ff2fa70eabe5ef6328eb4e21bfd40571c658c911`; final release record binds this complete code revision |
+| 2 | Connector implementation SHA | `5845d2a8459b14c8a6ec09d99ef96b4d2d22d93e`; post-freeze relocation fix only; frozen scientific inputs remain unchanged |
 | 3 | Files added | [Complete inventory](connector_file_inventory.md); task package, new assets/PDDL, validation, execution, metrics, replay and media scripts |
 | 4 | Baseline files modified | **No `vlm-tamp/` source changed.** Historical `docs/method_fidelity.md` connector status updated; connector-specific docs added/updated |
 | 5 | VAP-TAMP decision logic | **Unchanged.** Actual baseline AST loop and verification functions; task dispatch/visualization bindings only |
