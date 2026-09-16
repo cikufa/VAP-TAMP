@@ -1,0 +1,20 @@
+{
+  "revision": "development-1",
+  "units": "metres",
+  "connector_size": [0.070, 0.060, 0.040],
+  "connector_initial": [0.43, 0.0, 0.805],
+  "connector_staging": [0.43, 0.0, 0.94],
+  "socket_entry_x": 0.72,
+  "socket_center_z": 0.94,
+  "insert_depth": 0.075,
+  "grasp_offset": 0.095,
+  "fixture_y": 0.100,
+  "fixture_size": [0.12, 0.045, 0.16],
+  "fixture_x": 0.80,
+  "robot_position": [-0.10, 0.0, 0.0],
+  "robot_orientation": [0, 0, 0, 1],
+  "initial_look_target": [0.46, 0.0, 0.86],
+  "position_tolerance": 0.008,
+  "depth_tolerance": 0.006,
+  "path_step": 0.005
+}
