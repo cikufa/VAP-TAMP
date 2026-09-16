@@ -59,6 +59,18 @@ def _retry_delay(response):
     return 10.0
 
 
+def _daily_quota_violations(response):
+    """A short RetryInfo delay cannot recover an exhausted daily quota."""
+    try:
+        details = response.json().get("error", {}).get("details", [])
+        return [violation for detail in details
+                if detail.get("@type", "").endswith("QuotaFailure")
+                for violation in detail.get("violations", [])
+                if "perday" in violation.get("quotaId", "").lower()]
+    except (AttributeError, TypeError, ValueError):
+        return []
+
+
 class OpenAIBackend:
     provider = "openai"
 
@@ -174,6 +186,13 @@ class GeminiBackend:
                    body=response.text.replace(self.api_key, "[REDACTED_API_KEY]"))
             if response.status_code != 429 or _error_code(response) != "RESOURCE_EXHAUSTED":
                 break
+            daily = _daily_quota_violations(response)
+            if daily:
+                record("vlm_quota_exhausted", round=round_number,
+                       provider=self.provider, model=self.model, scope="daily",
+                       quota_ids=[item.get("quotaId") for item in daily],
+                       quota_values=[item.get("quotaValue") for item in daily])
+                raise BackendRequestError(self.provider, 429, "daily_quota_exhausted")
             if attempt < 2:
                 delay = _retry_delay(response)
                 record("vlm_rate_limit_retry", round=round_number,

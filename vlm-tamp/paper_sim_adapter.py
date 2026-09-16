@@ -61,6 +61,17 @@ def collision_contacts(context, og):
     return hits
 
 
+def existing_support_contacts(standing, candidate, support_bodies):
+    """Only complete, existing base/wheel contacts with designated ground qualify."""
+    if not standing or not candidate or len(standing) >= 8 or len(candidate) >= 8:
+        return False  # The diagnostic overlap collector truncates at eight hits.
+    pairs = lambda hits: {(hit['robot_mesh'], hit['other_body']) for hit in hits}
+    return (pairs(candidate) <= pairs(standing) and all(
+        hit['other_body'] in support_bodies and
+        hit['robot_mesh'].rsplit('/', 1)[-1] in ('base_link', 'l_wheel_link', 'r_wheel_link')
+        for hit in standing))
+
+
 class PaperSimVerifier:
     def __init__(self, scope, agent, output, *, budget_k, consistent_votes, motion_metres):
         from fetch_camera_compat import camera_sensor
@@ -214,10 +225,24 @@ class PaperSimVerifier:
                     if self.scope['set_base_and_detect_collision'](context, (before + offset * fraction, orientation)):
                         candidate_hits = collision_contacts(context, self.og)
                         standing_collision = self.scope['set_base_and_detect_collision'](context, (before, orientation))
+                        standing_hits = collision_contacts(context, self.og)
+                        # OG ignores floors globally but not fixed lawn. Allow only
+                        # existing shallow support contacts, with a full lifted-copy
+                        # collision check. The actual commanded height is unchanged.
+                        support_bodies = {link.prim_path for obj in self.env.scene.objects
+                                          if obj.category == 'lawn' and obj.fixed_base
+                                          for link in obj.links.values()}
+                        if existing_support_contacts(standing_hits, candidate_hits, support_bodies):
+                            lifted = before + offset * fraction + np.array([0., 0., .01])
+                            if not self.scope['set_base_and_detect_collision'](context, (lifted, orientation)):
+                                self.log('paper_support_contact_tolerated', direction=direction,
+                                         path_fraction=float(fraction), copy_lift_metres=.01,
+                                         candidate_contacts=candidate_hits)
+                                continue
                         self.log('paper_motion_rejected', direction=direction, reason='path_collision',
                                  path_fraction=float(fraction), position_before=before.tolist(),
                                  candidate_contacts=candidate_hits, standing_collision=standing_collision,
-                                 standing_contacts=collision_contacts(context, self.og))
+                                 standing_contacts=standing_hits)
                         return False
             self.robot.set_position_orientation(before + offset, orientation)
             held = self.scope['obj_held']

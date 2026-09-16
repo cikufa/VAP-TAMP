@@ -59,6 +59,11 @@ These are not numerical settings identified in the paper:
    token bound, but remains a provider adaptation that can affect generation.
    The released fixed-view path does not set this constraint. OpenAI remains
    restorable for the released path; this experimental enum control is Gemini-specific.
+9. A later native replay found shallow standing base/wheel overlap with fixed
+   lawn. The optional adapter allows only those existing contact pairs when
+   lifting the collision copy by 1 cm clears the entire candidate check; actual
+   command height is unchanged. This numerical tolerance is an additional
+   embodiment assumption, with [separate evidence](lawn_support_collision_fix.md).
 
 ## Component validation plan and evidence
 
@@ -82,7 +87,7 @@ development. No simultaneous simulator processes are used.
   It failed on a long explanation; no truth value was inferred from that text.
 - A standalone image request with the enum constraint passed using the same
   failed sufficiency request: `results/original/model_access/20260916T010231213543Z`.
-- 27 local tests pass, including camera projection, invalid-depth rejection,
+- 30 local tests pass, including camera projection, invalid-depth rejection,
   identical image bytes across five requests and strict response handling.
 
 The constrained-format replay of seed 4 (`20260916T010337794247Z`) completed
@@ -92,10 +97,18 @@ A second fixture from seed 5 (`20260916T010555168254Z`) likewise completed six
 requests and a continuation attempt without selecting a new view. These are
 valid no-motion outcomes, not moving-view acceptance evidence.
 
-Next declared test: one full bringing_water debug episode, seed 6, optional
+The first full bringing_water debug episode used seed 6, optional
 `--verification-mode paper-adapter`, K=2, 4/5 agreement, 0.25 m motions and a
 600-second process bound. This exposes the adapter to successive current
 predicates without forcing insufficiency or fabricating a failure. It is
 separate from the fixed-view pilot and is not used for a comparative success
 estimate. New AP observations also get first-/third-person videos. Stop and
 diagnose the first interface/motion failure; preserve a timeout as incomplete.
+That attempt (`20260916T010749710787Z`) was stopped after identifying planning-copy
+self-overlap. The [collision repair](base_copy_collision_fix.md) passed a native
+old/new comparison. A second full attempt at commit `a25bee9` used a declared
+1200-second bound to accommodate five-query voting at the observed 15 requests/minute.
+It executed five real view changes and the recovery loop, then stopped on the
+500-request daily quota after 555 seconds. See [complete evidence and remaining
+validation](paper_adapter_episode_results.md). It is an incomplete debug episode,
+not an additional successful trial or a fixed-view pilot measurement.

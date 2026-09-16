@@ -32,6 +32,8 @@ def summarize(directory):
     return dict(
         episode=str(directory), seed=metadata['seed'], git_commit=metadata['git_commit'],
         dirty_worktree=metadata['dirty_worktree'], provider=metadata['provider'], model=metadata['model'],
+        verification_mode=metadata.get('verification_mode', 'released'),
+        paper_adapter_parameters=metadata.get('paper_adapter_parameters'),
         status=metadata['status'], exit_code=metadata.get('exit_code'),
         wall_seconds=metadata.get('wall_seconds'), completed_trials=counts['trial_end'],
         released_results=metadata.get('released_results'), event_counts=dict(counts),

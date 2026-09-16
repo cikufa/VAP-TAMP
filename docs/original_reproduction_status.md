@@ -1,15 +1,18 @@
 # Original reproduction status
 
-**Current checkpoint:** simulator/cameras and five-start stability gate pass
-with process affinity; Fetch head and floor sampler compatibility are fixed.
-An eight-action scripted replay plus videos/state logs works, retaining a
-failed second grasp and false task result. OPENAI_API_KEY is still absent, so
-no authenticated VAP-TAMP episode is claimed. See `baseline_acceptance_report.md`
-and `released_primitive_replay.md` for current evidence; older notes below are
-historical.
+**Current checkpoint (2026-09-16):** five new Gemini-backed fixed-view trials
+completed. After a room-label repair, two of three trials achieved the physical
+kitchen-floor goal. The historical height-based score is retained separately.
+Native planning-copy self-collision and shallow lawn contact were subsequently
+fixed. The optional paper adapter executed five real view changes and continued
+replanning, then hit Gemini's 500-request daily quota. The latest full AP episode
+is incomplete; quota reset and a fresh bounded run remain before baseline acceptance.
 
-Last updated 2026-09-15. **Stage A is not yet reproduced.** No connector code
-may be started from this checkpoint.
+See `baseline_acceptance_report.md`, `bringing_water_pilot_results.md` and
+`paper_sim_adapter.md` for current evidence. Credentials are configured; no API
+key setup is pending. No connector has been implemented.
+
+The notes below are the historical setup record, superseded by the reports above.
 
 ## Completed verification
 

@@ -10,11 +10,23 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'vlm-tamp'))
 from gpt4v import GPT4VAgent
-from paper_sim_adapter import PaperSimVerifier, observed_points, questions_for
+from paper_sim_adapter import PaperSimVerifier, observed_points, questions_for, existing_support_contacts
 from vlm_backends import GeminiBackend
 
 
 class PaperAdapterChecks(unittest.TestCase):
+    def test_support_tolerance_cannot_ignore_new_obstacles_or_arm_contacts(self):
+        support = dict(robot_mesh='/World/robot_copy/l_wheel_link', other_body='/World/lawn/base_link')
+        ground = {'/World/lawn/base_link'}
+        self.assertTrue(existing_support_contacts([support], [support], ground))
+        wall = dict(support, other_body='/World/wall/base_link')
+        arm = dict(support, robot_mesh='/World/robot_copy/elbow_flex_link')
+        self.assertFalse(existing_support_contacts([support], [wall], ground))
+        self.assertFalse(existing_support_contacts([wall], [wall], ground))
+        self.assertFalse(existing_support_contacts([arm], [arm], ground))
+        self.assertFalse(existing_support_contacts([], [support], ground))
+        self.assertFalse(existing_support_contacts([support] * 8, [support], ground))
+
     def test_enum_constraint_does_not_change_prompt_or_image(self):
         source = dict(messages=[dict(role='user', content='question')], max_tokens=50)
         plain = GeminiBackend._convert(source)

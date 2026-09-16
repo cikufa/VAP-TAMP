@@ -1,8 +1,9 @@
 # Active-perception release audit
 
 Scope: static call tracing at upstream `39a52b0e10427ce91ddf3c1a177d3f4f782a61c3`,
-with original planner execution checked separately. No robot/simulator episode
-has been run. Sources are the pinned clone and [paper](https://arxiv.org/html/2604.26988v1)
+with original planner execution checked separately. This audit predates the live
+episodes; current evidence is in `baseline_acceptance_report.md` and
+`paper_adapter_episode_results.md`. Sources are the pinned clone and [paper](https://arxiv.org/html/2604.26988v1)
 (Algorithms 1–2, IV-B/C, V-B, appendix).
 
 ## Main finding: Case A

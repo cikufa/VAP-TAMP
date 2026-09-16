@@ -1,6 +1,7 @@
 from PIL import Image
 import base64
 import io
+from pathlib import Path
 import numpy as np
 from vlm_backends import build_backend
 
@@ -54,7 +55,7 @@ class GPT4VAgent:
         chat_input = {
             "model": self.gpt_version,
             "messages": [
-                {"role": "system", "content": open(self.prompt).read()},
+                {"role": "system", "content": Path(self.prompt).read_text()},
                 {"role": "user", "content": context_messages},
             ],
             "max_tokens": self.max_tokens,
@@ -69,9 +70,9 @@ class GPT4VAgent:
         return res, False
 
     def plan(self, problem, domain):
-        problem_description = open(problem).read()
-        domain_knowledge = open(domain).read()
-        system_prompts = open(self.planning_prompt).read()
+        problem_description = Path(problem).read_text()
+        domain_knowledge = Path(domain).read_text()
+        system_prompts = Path(self.planning_prompt).read_text()
         context_messages = [
             {
                 "type": "text",

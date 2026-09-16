@@ -100,6 +100,24 @@ class CompatibilityChecks(unittest.TestCase):
         self.assertEqual([call.args for call in sleep.call_args_list], [(5.0,), (5.0,)])
         self.assertEqual(post.call_count, 3)
 
+    def test_gemini_daily_quota_stops_despite_short_retry_hint(self):
+        backend = GeminiBackend(api_key="test-placeholder", model="gemini-test")
+        limited = SimpleNamespace(ok=False, text="daily quota", status_code=429,
+            json=lambda: {"error": {"status": "RESOURCE_EXHAUSTED", "details": [
+                {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [
+                    {"quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "quotaValue": "15"},
+                    {"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier", "quotaValue": "500"}]},
+                {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "52s"}]}})
+        with patch('vlm_backends._post_json', return_value=limited) as post, \
+             patch('vlm_backends.time.sleep') as sleep, \
+             patch('repro_trace.record') as record:
+            with self.assertRaisesRegex(BackendRequestError, 'daily_quota_exhausted'):
+                backend.request({"messages": [], "max_tokens": 50}, 112)
+        self.assertEqual(post.call_count, 1)
+        sleep.assert_not_called()
+        self.assertEqual(record.call_args.args, ('vlm_quota_exhausted',))
+        self.assertEqual(record.call_args.kwargs['quota_values'], ['500'])
+
     def test_camera_unpacking_preserves_pixel_data(self):
         function = load_definition("vlm-tamp/eval.py", "_observation_data", {})
         data = {"rgb": object()}

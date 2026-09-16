@@ -1,6 +1,6 @@
-"""Run the released full-verification firewood configuration in an output sandbox.
+"""Run released-task verification in an output sandbox.
 
-This launcher does not reconstruct active perception or implement a custom task.
+Fixed-view is the default; the optional paper adapter is a separate adaptation.
 Episode completion must be reviewed separately from process exit status.
 """
 import argparse

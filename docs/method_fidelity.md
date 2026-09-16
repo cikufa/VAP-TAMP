@@ -8,8 +8,9 @@ supplement was identified in its visible links.
 Classes: A released and executable; B released requiring compatibility fixes;
 C paper-described missing logic actually reimplemented; D assumptions required;
 E unavailable/unreproduced. A does not imply paper-equivalence. The fixed-view pilot now has five completed trials in two conditions. An optional
-Algorithm 2 adapter has live voting/sufficiency/state-correction evidence; moving-view
-and full-episode acceptance are tracked separately in `paper_sim_adapter.md`.
+Algorithm 2 adapter has live voting, five executed view changes, new observations,
+state correction and continued planning. Its full episode hit daily API quota;
+see `paper_adapter_episode_results.md` for the incomplete-trial boundary.
 
 ## Latest execution compatibility changes
 
@@ -19,6 +20,9 @@ and full-episode acceptance are tracked separately in `paper_sim_adapter.md`.
 | Fetch target-directed head motion | Existing lookat target converted to Fetch joint positions using actual kinematics | B | OG helper hard-codes Tiago joints; actual camera pointing and limits tested |
 | Navigation bounding-box samples | Same random sampler, with center-to-face distance corrected to half of full extent | B | OG 1.0 uses full extent and cannot find room-valid poses for the large floor |
 | Semantic label lookup | OG 1.0's semantic_class_id_to_name function | B | Released import refers to an unavailable constant |
+| Movable-object room lookup | Current segmentation-map room, fixed-object annotated rooms retained | B | Cached in_rooms remains stale after transport; native regression validated |
+| Base-copy self filtering | Restore simplified-base-copy filtering on Fetch's original-copy fallback | B/D | Native torso/elbow self-overlap otherwise blocked all tested AP directions |
+| Optional AP ground tolerance | Existing base/wheel lawn contacts allowed only when a 1 cm raised-copy check clears | D | Measured shallow support overlap; separately validated, not a paper parameter |
 | Execution diagnostics | Source-extracted primitive replay without a VLM; videos and physical-state logs | Diagnostic only | Not counted as a VAP-TAMP trial; failed grasp and false task result preserved |
 
 Failure probabilities, fixed-view navigation behavior (`tuck` after `lookat`),
@@ -42,7 +46,7 @@ the broken helper. Full baseline acceptance remains incomplete.
 | Failure injection | Table II per-action outcomes | Bernoulli success and conditional drop | Active in all fixed-view trials | A | No probability changes | Failures, discrepancies and recovery retained |
 | Verification ordering | Current preconditions, then positive effects | First preconditions, then effects + successor preconditions; state-difference effects include negation | Same released order in live traces | D | No | General Algorithm 1 ordering difference remains explicit |
 | Paraphrase voting | Five variants, majority | Not implemented in inspected execution loops | Optional paper adapter; five separate same-image queries | C/D | Separate mode | Not mixed with fixed-view pilot; Gemini enum formatting is an adaptation |
-| Active view simulation | Fixed relative-base view in V-B | AP off; real-robot optional hook; wrapper stub | Fixed-view default retained; separate native Algorithm 2 adapter under validation | C/D optional | Opt-in only | Not an exact reproduction of V-B |
+| Active view simulation | Fixed relative-base view in V-B | AP off; real-robot optional hook; wrapper stub | Fixed-view default retained; optional native Algorithm 2 adapter executed five real view changes | C/D optional | Opt-in only | Not an exact reproduction of V-B; full AP episode incomplete on daily quota |
 | Generic real AP | VLM-guided views | Six head poses + up to three circular base candidates | Not executed | D/E | No | Geometric exploration differs from Algorithm 2 |
 | VLMViewGuide | Sufficiency and directions | Task-specific grasp/door guidance | Source audited | E runtime | No | Not generic predicate verifier |
 | Graph construction | RGB-D instances/relations | Standalone exporter + Stretch SceneGraph | Not executed | E | No | Simulation does not call exporter |

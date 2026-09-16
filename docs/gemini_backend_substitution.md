@@ -1,10 +1,22 @@
 # Gemini free-tier VLM backend substitution
 
-Date: 2026-09-15.
+Updated: 2026-09-16.
+
+Five fixed-view trial results: `bringing_water_pilot_results.md`. The separate
+optional paper adapter changes query formatting and uses enum output constraints;
+see `paper_sim_adapter.md`. The preserved contract below describes the default
+released simulation path.
 
 The active VAP-TAMP simulation backend is Google Gemini Developer API with
 `gemini-3.5-flash-lite`. This is a provider and model substitution, not an exact
 reproduction of the released OpenAI `gpt-4-turbo` configuration.
+
+The later moving-view attempt exhausted the observed 500-request daily project/model
+quota after 111 successful requests in that episode. It is preserved as incomplete;
+see `paper_adapter_episode_results.md`. Structured daily-quota errors now stop
+immediately even if the service supplies a short RetryInfo hint. Per-minute
+throttling retains the existing two bounded retries; no key/model rotation or
+billing change was made.
 
 ## Preserved request contract
 
@@ -18,8 +30,8 @@ reproduction of the released OpenAI `gpt-4-turbo` configuration.
 - PDDL, verification ordering, failure probabilities, simulator settings, and
   task settings are unchanged.
 
-Gemini 3.5 Flash-Lite uses thinking by default. With the eight-token validation
-budget, the API returned HTTP 200 but no text. The adapter sets
+During the earlier Gemini 3.6 Flash validation, an eight-token output budget
+returned HTTP 200 without visible text. The adapter sets
 `thinkingLevel=minimal`, the closest supported setting to the released
 non-reasoning short-answer request. This provider-specific setting is part of
 the documented deviation.

@@ -17,9 +17,12 @@ def run(root, work, env, scope, event):
     source_events = [json.loads(line) for line in fixture.read_text().splitlines()]
     collision_only = os.getenv('VAPTAMP_PROBE_PAPER_COLLISION') == '1'
     last_action = None
+    last_predicate = None
     for item in source_events:
         if item['event'] == 'action_end':
             last_action = item
+        if item['event'] == 'paper_votes_raw':
+            last_predicate = item['predicate']
         if collision_only:
             if item['event'] == 'paper_motion_rejected' and last_action:
                 break
@@ -58,10 +61,47 @@ def run(root, work, env, scope, event):
         from unittest.mock import patch
         observation = verifier.observe()
         verifier.refresh(observation, verifier.graph)
+        collision_mode = os.getenv('VAPTAMP_PROBE_PAPER_COLLISION_MODE')
+        if collision_mode in ('support-audit', 'support-fix'):
+            from paper_sim_adapter import collision_contacts
+            from primitive_compat import ignore_copy_self_collisions
+            before, orientation = env.robots[0].get_position_orientation()
+            target = np.asarray(verifier.graph['objects'][verifier.scope_to_name[
+                verifier.target(last_predicate)]]['anchor'])
+            toward = target[:2] - before[:2]
+            toward /= np.linalg.norm(toward)
+            assert item['direction'] in ('closer', 'front')
+            offset = np.r_[.25 * toward, 0.]
+            samples = []
+            with scope['PlanningContext'](env.robots[0], scope['ap'].robot_copy, 'simplified') as context:
+                ignore_copy_self_collisions(context)
+                for lift in (0., .01, .02, .05, .1):
+                    for fraction in (0., .2, 1.):
+                        position = before + offset * fraction + np.array([0., 0., lift])
+                        blocked = scope['set_base_and_detect_collision'](context, (position, orientation))
+                        samples.append(dict(copy_lift_metres=lift, path_fraction=fraction,
+                                            blocked=blocked, contacts=collision_contacts(context, verifier.og)))
+            combined('paper_support_collision_audit', samples=samples,
+                     real_robot_moved=False, collision_filters_changed=False,
+                     purpose='quantify standing terrain overlap; no experimental behavior change')
+            if collision_mode == 'support-fix':
+                with patch('paper_sim_adapter.existing_support_contacts', lambda *args: False):
+                    old_moved = verifier.navigate(item['direction'], last_predicate)
+                assert not old_moved, 'Expected standing lawn overlap without tolerance'
+                moved = verifier.navigate(item['direction'], last_predicate)
+                assert moved, 'Bounded support tolerance did not permit the recorded motion'
+                after = verifier.observe()
+                verifier.refresh(after, verifier.graph)
+                assert observation['pixel_sha256'] != after['pixel_sha256']
+                combined('paper_support_motion_validated', old_moved=old_moved, moved=moved,
+                         copy_lift_metres=.01, real_command_lift_metres=0., distinct_images=2)
+            combined('paper_collision_probe_completed', live_requests=agent.current_round,
+                     scientific_trial=False, mode=collision_mode)
+            return
         with patch('paper_sim_adapter.ignore_copy_self_collisions', lambda context: None):
-            old_moved = verifier.navigate(item['direction'], ['inview', 'agent-n-01_1', 'water_bottle-n-01_2'])
+            old_moved = verifier.navigate(item['direction'], last_predicate)
         assert not old_moved, 'Fixture did not reproduce the copy self-collision'
-        moved = verifier.navigate(item['direction'], ['inview', 'agent-n-01_1', 'water_bottle-n-01_2'])
+        moved = verifier.navigate(item['direction'], last_predicate)
         assert moved, 'Filtering only copy self-collisions did not permit the requested path'
         after = verifier.observe()
         verifier.refresh(after, verifier.graph)
