@@ -26,3 +26,19 @@ Hypothesis: the released origin-height proxy (z < 0.1 m) can reject an upright
 ~0.28 m bottle on the correct floor. Seed 0's last action records centers near
 0.14 m; it lacks a final settled native predicate report, so this is not yet a
 confirmed explanation for that seed.
+
+## Amendment before seed 3
+
+Seeds 1 and 2 both completed but failed after 51 actions (the released check is
+`action_counter > 50`, so the operational maximum is 51). Seed 2 encountered
+43 exhausted navigation searches after a bottle entered the kitchen. OG's
+`in_rooms` remains its initial `garden_0` annotation. The helper incorrectly
+requires candidate poses near the moved bottle to belong to that old room.
+
+Stop the initial series after these two retained trials. Validate a correction
+using an isolated replay of the saved moved-bottle pose, same RNG seed for the
+old and corrected room rules. Then run a new three-trial series with seeds
+3, 4, 5, same 600-second bound and all other settings above. Do not pool the
+two conditions. The only execution change is current map-room lookup for
+movable objects; retain fixed-object room annotations. Record the correction
+as an execution/fidelity deviation even though it repairs stale metadata.

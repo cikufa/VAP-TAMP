@@ -43,6 +43,9 @@ def run(root, out, env, event):
     scope['random'].seed(0)
     np.random.seed(0)
     scope['watch_robot']()
+    if os.getenv('VAPTAMP_PROBE_MOVED_OBJECT'):
+        check_moved_object(root, env, scope, event)
+        return
     domain = root / 'vlm-tamp/domains/bringing_water/domain.pddl'
     problem = root / 'vlm-tamp/domains/bringing_water/problem.pddl'
     planner = scope['pddlsim'](str(domain))
@@ -78,3 +81,48 @@ def run(root, out, env, event):
         from episode_videos import encode_videos
         for video in encode_videos(work):
             event('scripted_video_saved', **video)
+
+
+def check_moved_object(root, env, scope, event):
+    """Replay one observed bottle pose, comparing only the room lookup rule.
+
+    This is a geometry regression probe, not a trial or failure injection.
+    No VLM calls, score changes or oracle execution enter the episode series.
+    """
+    import json
+    import numpy as np
+    from unittest.mock import patch
+    import primitive_compat
+
+    trace = Path(os.environ['VAPTAMP_PROBE_MOVED_OBJECT']).resolve()
+    if not trace.is_relative_to(root):
+        raise ValueError('Regression fixture must be a project trace')
+    events = [json.loads(line) for line in trace.read_text().splitlines()]
+    state = next(event['simulator_state'] for event in reversed(events)
+                 if event['event'] == 'action_end')
+    name = 'water_bottle.n.01_2'
+    target = env.task.object_scope[name].wrapped_obj
+    recorded = state['objects'][name]
+    target.set_position_orientation(np.array(recorded['position']), np.array(recorded['orientation']))
+    scope['run_sim'](20)
+    current_room = env.scene.seg_map.get_room_instance_by_point(target.get_position()[:2])
+    event('moved_object_fixture', trace=str(trace), target=name,
+          position=target.get_position().tolist(), cached_rooms=target.in_rooms,
+          current_room=current_room, scientific_trial=False)
+    assert current_room not in target.in_rooms, 'Fixture no longer reproduces stale room labels'
+    rng_state = np.random.get_state()
+    try:
+        np.random.seed(0)
+        with patch.object(primitive_compat, 'navigation_target_rooms',
+                          side_effect=lambda obj, seg, point: obj.in_rooms or [seg.get_room_instance_by_point(point[:2])]):
+            old = scope['sample_teleport_pose_near_object'](scope['ap'], target)
+        np.random.seed(0)
+        new = scope['sample_teleport_pose_near_object'](scope['ap'], target)
+    finally:
+        np.random.set_state(rng_state)
+    event('moved_object_comparison', old_pose=None if old is None else old.tolist(),
+          corrected_pose=None if new is None else new.tolist(), same_random_seed=0)
+    assert old is None, 'Old helper unexpectedly found a pose; inspect fixture'
+    assert new is not None, 'Current-room lookup did not resolve navigation failure'
+    assert env.scene.seg_map.get_room_instance_by_point(new[:2]) == current_room
+    event('moved_object_probe_completed', current_room=current_room)

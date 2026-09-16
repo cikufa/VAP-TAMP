@@ -2,6 +2,19 @@
 import numpy as np
 
 
+def navigation_target_rooms(obj, segmentation_map, point_on_object):
+    """Use current location for movable objects; in_rooms is static OG metadata.
+
+    Fixed floors/furniture can span several room segments, so their annotated
+    room set remains authoritative. A movable object outside the map remains
+    unresolved instead of silently falling back to its obsolete initial room.
+    """
+    if obj.fixed_base and obj.in_rooms:
+        return list(obj.in_rooms)
+    point = point_on_object if obj.fixed_base else obj.get_position()
+    return [segmentation_map.get_room_instance_by_point(point[:2])]
+
+
 def sample_aabb_side(target_obj):
     """OG's side-face sampler with full-extent/half-extent error corrected.
 

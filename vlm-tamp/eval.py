@@ -212,7 +212,7 @@ def yaw_to_quaternion(yaw):
 
 
 def sample_teleport_pose_near_object(ap, obj, pose_on_obj=None, **kwargs):
-    from primitive_compat import sample_aabb_side
+    from primitive_compat import sample_aabb_side, navigation_target_rooms
     with PlanningContext(ap.robot, ap.robot_copy, "simplified") as context:
         for _ in range(MAX_ATTEMPTS_FOR_SAMPLING_POSE_NEAR_OBJECT):
             # if pose_on_obj is None:
@@ -231,13 +231,7 @@ def sample_teleport_pose_near_object(ap, obj, pose_on_obj=None, **kwargs):
             )
             # Check room
 
-            obj_rooms = (
-                obj.in_rooms
-                if obj.in_rooms
-                else [
-                    ap.env.scene._seg_map.get_room_instance_by_point(pose_on_obj[0][:2])
-                ]
-            )
+            obj_rooms = navigation_target_rooms(obj, ap.env.scene._seg_map, pose_on_obj[0])
 
             if obj_rooms == [None]:
                 print("object not in any room.")
@@ -254,8 +248,15 @@ def sample_teleport_pose_near_object(ap, obj, pose_on_obj=None, **kwargs):
                 print("Candidate position failed collision test.")
                 continue
             # import pdb; pdb.set_trace()
+            record('navigation_pose_sampled', target=obj.name, attempts=_ + 1,
+                   cached_rooms=obj.in_rooms, resolved_rooms=obj_rooms,
+                   target_position=obj.get_position().tolist(), pose=pose_2d.tolist())
             return pose_2d
         print("Could not find valid position near object.")
+        record('navigation_pose_sampling_failed', target=obj.name,
+               attempts=MAX_ATTEMPTS_FOR_SAMPLING_POSE_NEAR_OBJECT,
+               cached_rooms=obj.in_rooms, resolved_rooms=obj_rooms,
+               target_position=obj.get_position().tolist())
         # raise ActionPrimitiveError(
         #     ActionPrimitiveError.Reason.SAMPLING_ERROR,
         #     "Could not find valid position near object.",

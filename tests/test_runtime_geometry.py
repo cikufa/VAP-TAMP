@@ -10,11 +10,30 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'vlm-tamp'))
 sys.path.insert(0, str(ROOT / 'scripts'))
-from primitive_compat import sample_aabb_side
+from primitive_compat import sample_aabb_side, navigation_target_rooms
 from native_runtime import apply_cpu_affinity
 
 
 class RuntimeGeometry(unittest.TestCase):
+    def test_carried_object_uses_current_room_instead_of_cached_origin(self):
+        obj = SimpleNamespace(fixed_base=False, in_rooms=['garden_0'],
+                              get_position=lambda: np.array([2., 3., .14]))
+        room_map = SimpleNamespace(get_room_instance_by_point=lambda xy: 'kitchen_0')
+        self.assertEqual(navigation_target_rooms(obj, room_map, np.zeros(3)), ['kitchen_0'])
+        self.assertEqual(obj.in_rooms, ['garden_0'])
+
+    def test_fixed_floor_retains_its_annotated_rooms(self):
+        obj = SimpleNamespace(fixed_base=True, in_rooms=['kitchen_0', 'hall_0'])
+        room_map = SimpleNamespace(get_room_instance_by_point=lambda xy: 'garden_0')
+        self.assertEqual(navigation_target_rooms(obj, room_map, np.zeros(3)),
+                         ['kitchen_0', 'hall_0'])
+
+    def test_unmapped_movable_object_does_not_reuse_stale_room(self):
+        obj = SimpleNamespace(fixed_base=False, in_rooms=['garden_0'],
+                              get_position=lambda: np.zeros(3))
+        room_map = SimpleNamespace(get_room_instance_by_point=lambda xy: None)
+        self.assertEqual(navigation_target_rooms(obj, room_map, np.zeros(3)), [None])
+
     def test_floor_and_small_object_samples_lie_on_actual_side_faces(self):
         state = np.random.get_state()
         try:

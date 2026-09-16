@@ -82,6 +82,7 @@ def main():
         report['preload_torch']=env.get('VAPTAMP_PROBE_PRELOAD_TORCH')=='1'
         report['released_lookat_requested']=env.get('VAPTAMP_PROBE_LOOKAT')=='1'
         report['released_actions_requested']=env.get('VAPTAMP_PROBE_ACTIONS')=='1'
+        report['moved_object_probe_requested']=bool(env.get('VAPTAMP_PROBE_MOVED_OBJECT'))
         command=[sys.executable,'-u',str(probe_copy)]
         if args.task:command += ['--task',args.task]
         if env.get('VAPTAMP_NATIVE_STRACE') == '1':
@@ -123,6 +124,8 @@ def main():
             report['success'] = report['success'] and 'primitive_completed' in phase
         if report['released_actions_requested']:
             report['success'] = report['success'] and 'scripted_plan_completed' in phase
+        if report['moved_object_probe_requested']:
+            report['success'] = report['success'] and 'moved_object_probe_completed' in phase
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1' or env.get('VAPTAMP_SCENE_MODEL'):
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':
