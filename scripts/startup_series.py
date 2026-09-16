@@ -86,6 +86,7 @@ def main():
         report['released_actions_requested']=env.get('VAPTAMP_PROBE_ACTIONS')=='1'
         report['moved_object_probe_requested']=bool(env.get('VAPTAMP_PROBE_MOVED_OBJECT'))
         report['paper_adapter_probe_requested']=env.get('VAPTAMP_PROBE_PAPER_AP')=='1'
+        report['paper_collision_probe_requested']=env.get('VAPTAMP_PROBE_PAPER_COLLISION')=='1'
         command=[sys.executable,'-u',str(probe_copy)]
         if args.task:command += ['--task',args.task]
         if env.get('VAPTAMP_NATIVE_STRACE') == '1':
@@ -129,8 +130,10 @@ def main():
             report['success'] = report['success'] and 'scripted_plan_completed' in phase
         if report['moved_object_probe_requested']:
             report['success'] = report['success'] and 'moved_object_probe_completed' in phase
-        if report['paper_adapter_probe_requested']:
+        if report['paper_adapter_probe_requested'] and not report['paper_collision_probe_requested']:
             report['success'] = report['success'] and 'paper_adapter_probe_completed' in phase
+        if report['paper_collision_probe_requested']:
+            report['success'] = report['success'] and 'paper_collision_probe_completed' in phase
         if env.get('VAPTAMP_MINIMAL_SCENE') == '1' or env.get('VAPTAMP_SCENE_MODEL'):
             report['success'] = report['success'] and 'minimal_rgb_saved' in phase
         if env.get('VAPTAMP_NATIVE_WITHOUT_OG') == '1':

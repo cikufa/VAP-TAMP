@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image
 
 from paper_verification import verify_predicate
+from primitive_compat import ignore_copy_self_collisions
 
 
 def questions_for(fact):
@@ -39,6 +40,25 @@ def observed_points(depth, mask, position, rotation, focal_pixels):
     local = np.column_stack(((cols + .5 - width / 2) * z / focal_pixels,
                              -(rows + .5 - height / 2) * z / focal_pixels, -z))
     return local @ rotation.T + position
+
+
+def collision_contacts(context, og):
+    """Read the same overlap queries/filter as OG's checker, retaining hit names."""
+    from omnigibson import lazy
+    hits = []
+    for meshes in context.robot_copy.meshes[context.robot_copy_type].values():
+        for mesh in meshes.values():
+            mesh_path = mesh.GetPrimPath().pathString
+            def report(hit):
+                if hit.rigid_body not in context.disabled_collision_pairs_dict[mesh_path]:
+                    hits.append(dict(robot_mesh=mesh_path, other_body=hit.rigid_body))
+                return len(hits) < 8
+            mesh_id = lazy.pxr.PhysicsSchemaTools.encodeSdfPath(mesh_path)
+            query = og.sim.psqi.overlap_mesh if mesh.GetTypeName() == 'Mesh' else og.sim.psqi.overlap_shape
+            query(*mesh_id, reportFn=report)
+            if len(hits) >= 8:
+                return hits
+    return hits
 
 
 class PaperSimVerifier:
@@ -189,9 +209,15 @@ class PaperSimVerifier:
             offset = np.r_[self.motion_metres * vectors[direction], 0.]
             # Reject the requested path when blocked; no alternative-view search.
             with self.scope['PlanningContext'](self.robot, self.scope['ap'].robot_copy, 'simplified') as context:
+                ignore_copy_self_collisions(context)
                 for fraction in np.linspace(.2, 1., 5):
                     if self.scope['set_base_and_detect_collision'](context, (before + offset * fraction, orientation)):
-                        self.log('paper_motion_rejected', direction=direction, reason='path_collision')
+                        candidate_hits = collision_contacts(context, self.og)
+                        standing_collision = self.scope['set_base_and_detect_collision'](context, (before, orientation))
+                        self.log('paper_motion_rejected', direction=direction, reason='path_collision',
+                                 path_fraction=float(fraction), position_before=before.tolist(),
+                                 candidate_contacts=candidate_hits, standing_collision=standing_collision,
+                                 standing_contacts=collision_contacts(context, self.og))
                         return False
             self.robot.set_position_orientation(before + offset, orientation)
             held = self.scope['obj_held']

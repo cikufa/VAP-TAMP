@@ -15,10 +15,15 @@ def run(root, work, env, scope, event):
     if not fixture.is_relative_to(root):
         raise ValueError('Use a project trial trace as the view fixture')
     source_events = [json.loads(line) for line in fixture.read_text().splitlines()]
+    collision_only = os.getenv('VAPTAMP_PROBE_PAPER_COLLISION') == '1'
     last_action = None
     for item in source_events:
         if item['event'] == 'action_end':
             last_action = item
+        if collision_only:
+            if item['event'] == 'paper_motion_rejected' and last_action:
+                break
+            continue
         if (item['event'] == 'verification' and last_action
                 and last_action['action'][0] == 'find'
                 and last_action['action'][2] == 'water_bottle-n-01_2'
@@ -40,7 +45,7 @@ def run(root, work, env, scope, event):
         record(name, **fields)
     scope['record'] = combined
     combined('paper_view_fixture', trace=str(fixture), action_event=last_action['sequence'],
-             verification_event=item['sequence'], recorded_answers=item['visual_answers'],
+             verification_event=item['sequence'], recorded_answers=item.get('visual_answers'),
              scientific_trial=False, purpose='replay an observed visibility disagreement')
 
     agent = GPT4VAgent()
@@ -49,6 +54,22 @@ def run(root, work, env, scope, event):
                                budget_k=2, consistent_votes=4, motion_metres=.25)
     scope.update(vlm_agent=agent, paper_verifier=verifier,
                  CHECK_PRECONDITION=True, CHECK_EFFECT=True)
+    if collision_only:
+        from unittest.mock import patch
+        observation = verifier.observe()
+        verifier.refresh(observation, verifier.graph)
+        with patch('paper_sim_adapter.ignore_copy_self_collisions', lambda context: None):
+            old_moved = verifier.navigate(item['direction'], ['inview', 'agent-n-01_1', 'water_bottle-n-01_2'])
+        assert not old_moved, 'Fixture did not reproduce the copy self-collision'
+        moved = verifier.navigate(item['direction'], ['inview', 'agent-n-01_1', 'water_bottle-n-01_2'])
+        assert moved, 'Filtering only copy self-collisions did not permit the requested path'
+        after = verifier.observe()
+        verifier.refresh(after, verifier.graph)
+        assert observation['pixel_sha256'] != after['pixel_sha256'], 'No new visual observation after motion'
+        combined('paper_collision_probe_completed', moved=moved, direction=item['direction'],
+                 old_moved=old_moved, distinct_images=2,
+                 live_requests=agent.current_round, scientific_trial=False)
+        return
     previous = Path.cwd()
     try:
         os.chdir(work)

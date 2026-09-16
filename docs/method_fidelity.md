@@ -1,15 +1,15 @@
 # Method fidelity ledger
 
-Audit: 2026-09-15. Upstream `39a52b0e10427ce91ddf3c1a177d3f4f782a61c3`.
+Updated: 2026-09-16. Upstream `39a52b0e10427ce91ddf3c1a177d3f4f782a61c3`.
 Paper: [arXiv v1](https://arxiv.org/html/2604.26988v1), including its prompt appendix.
 The project page links this paper and demonstration video; no separate runnable
 supplement was identified in its visible links.
 
 Classes: A released and executable; B released requiring compatibility fixes;
 C paper-described missing logic actually reimplemented; D assumptions required;
-E unavailable/unreproduced. A does not imply paper-equivalence. There are no
-fully validated class-C integrations yet. Algorithm 2 control flow exists with
-unit tests; live VLM/motion integration remains pending.
+E unavailable/unreproduced. A does not imply paper-equivalence. The fixed-view pilot now has five completed trials in two conditions. An optional
+Algorithm 2 adapter has live voting/sufficiency/state-correction evidence; moving-view
+and full-episode acceptance are tracked separately in `paper_sim_adapter.md`.
 
 ## Latest execution compatibility changes
 
@@ -31,27 +31,28 @@ the broken helper. Full baseline acceptance remains incomplete.
 | Fast Downward | Classical PDDL planning | Vendored source; `seq-opt-fdss-1`, 10 s search | Built source; original firewood wrapper smoke | A | No algorithm change | Eight actions, validated |
 | VAL | Classical state/action reasoning | Vendored source; verbose state replay | Built CMake Release; nine states for eight actions | B (build setup) | Build script only | README omits initial CMake configure |
 | PDDL parser | Action knowledge extraction | `pddl` package missing from env file | pddl 0.4.2; all original plan preconditions extracted | B | Dependency added | API checked by wrapper smoke |
-| Environment | OmniGibson/BEHAVIOR, no version pins | Incomplete Python 3.9 / torch 1.12.1 env | Python 3.10 planner-only prefix; OG 1.0.0 candidate | D | Provisioning only | Historical native engine uses Python 3.10 |
-| Original simulator | Five household tasks | Fetch / Ihlen / store_firewood default | Not launched | E | No | Engine, assets and credentials gate |
-| Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Intended: both true, classical planning, NL false | B | Flags parameterized; no episode yet | Upstream defaults select another strategy |
+| Environment | OmniGibson/BEHAVIOR, no version pins | Incomplete Python 3.9 / torch 1.12.1 env | Dedicated Python 3.10.21, OG 1.0, torch 2.0.1/cu118, Isaac 2023.1.1 | D | Project-local provisioning | Native stack validated; host driver unchanged |
+| Original simulator | Five household tasks | Fetch / Ihlen / store_firewood default | OG 1.0, Isaac 2023.1.1, Fetch; cached Wainscott bringing_water | D scene substitution | Compatibility fixes | Five new trials completed; missing exact Ihlen artifact remains |
+| Full predicate-based baseline config | Preconditions + effects | Both false, VLM planning true at HEAD | Both true, classical planning, NL false | B | Parameterized flags | Completed five recorded trials |
 | Simulation VLM | Simulation endpoint not separately named | GPT4VAgent uses OpenAI gpt-4-turbo | Gemini Developer API, gemini-3.5-flash-lite free tier; same prompts, 256x256 PNG and semicolon parsing | D; bounded episode completed | Yes | Released model unavailable and OpenAI credit exhausted; explicit provider/model substitution |
 | Real VLM | Gemini Vision family, no endpoint ID | Gemini 2.0 flash exp in real executor / VLMViewGuide; optional Vertex 1.0 Pro Vision; offline map planner now Gemini 2.5 Flash | Not run | D/E | No model change | Cannot infer which exact endpoint produced published trials |
 | Credentials | Not method logic | Two embedded credential literals found | Environment-variable reads replace both | B | Yes | Never use embedded upstream credentials |
-| Primitive execution | Parameterized motion library | Teleport base/object, set states, gravity toggles | No physics execution | E | No | Native release must be reproduced before changes |
-| Ground truth boundary | Visually grounded verification | handempty/inhand/filled/inside from bookkeeping; instance segmentation used inview | Preserve for original baseline, log source explicitly | D, runtime E | No | Must not claim purely visual state estimation |
-| Failure injection | Table II per-action outcomes | Bernoulli success and conditional drop | Source-audited, not sampled experimentally | A source / E execution | No | Values preserved |
-| Verification ordering | Current preconditions, then positive effects | First preconditions, then effects + successor preconditions; state-difference effects include negation | Source-derived trace only | D, runtime E | No | Ordering differs from general pseudocode |
-| Paraphrase voting | Five variants, majority | Not implemented in inspected execution loops | None | E; potential C | No | Do not count semicolon batches as voting |
-| Active view simulation | Fixed relative-base view in V-B | AP off; real-robot optional hook; wrapper stub | None | E | No | Case A, not omitted moving-view simulation |
+| Primitive execution | Parameterized motion library | Teleport base/object, set states, gravity toggles | Native execution with released stochastic failures | B/D | Geometry/room compatibility repairs | No physical grasp-planner equivalence claimed |
+| Ground truth boundary | Visually grounded verification | handempty/inhand/filled/inside from bookkeeping; instance segmentation used inview | Preserved and recorded in live verification traces | D | Diagnostic final predicates added, not fed to planner | Not purely visual state estimation |
+| Failure injection | Table II per-action outcomes | Bernoulli success and conditional drop | Active in all fixed-view trials | A | No probability changes | Failures, discrepancies and recovery retained |
+| Verification ordering | Current preconditions, then positive effects | First preconditions, then effects + successor preconditions; state-difference effects include negation | Same released order in live traces | D | No | General Algorithm 1 ordering difference remains explicit |
+| Paraphrase voting | Five variants, majority | Not implemented in inspected execution loops | Optional paper adapter; five separate same-image queries | C/D | Separate mode | Not mixed with fixed-view pilot; Gemini enum formatting is an adaptation |
+| Active view simulation | Fixed relative-base view in V-B | AP off; real-robot optional hook; wrapper stub | Fixed-view default retained; separate native Algorithm 2 adapter under validation | C/D optional | Opt-in only | Not an exact reproduction of V-B |
 | Generic real AP | VLM-guided views | Six head poses + up to three circular base candidates | Not executed | D/E | No | Geometric exploration differs from Algorithm 2 |
 | VLMViewGuide | Sufficiency and directions | Task-specific grasp/door guidance | Source audited | E runtime | No | Not generic predicate verifier |
 | Graph construction | RGB-D instances/relations | Standalone exporter + Stretch SceneGraph | Not executed | E | No | Simulation does not call exporter |
-| Graph maintenance | Observation and expected-effect updates | PDDL string corrections; no generic observation refresh in AP | Source audited | E runtime | No | Missing integration remains explicit |
+| Graph maintenance | Observation and expected-effect updates | PDDL string corrections; no generic observation refresh in AP | Live PDDL corrections; optional RGB-D instance memory + symbolic facts | C/D optional | Separate adapter | Small task-object memory, not complete voxel-map reconstruction |
 | Connector / physical insertion | New diagnostic, not paper task | Not released | Not implemented | E | No | Successful original baseline commit required first |
 
-The completed Gemini-backed seed-0 trial is execution evidence, not model
-equivalence evidence. It ended with the released task score false after 37
-actions and extensive situation handling; see `gemini_backend_substitution.md`.
+The fixed-view pilot is execution evidence, not model equivalence. Two of three
+trials after the room fix physically achieved the released PDDL goal; all historical
+height-based scores were false. See `bringing_water_pilot_results.md` and
+`bringing_water_goal_scoring.md`. No population success-rate comparison is claimed.
 
 ## Failure probabilities
 
@@ -90,8 +91,9 @@ two-stage random draw agrees with the paper's 10% held-object-drop entry.
 - `stretch_ai/src/stretch/llms/multi_crop_gemini_client.py` now defaults to
   gemini-2.5-flash. This offline mapping path does not authorize switching the
   simulation or historical active-perception model. If a substitute becomes
-  necessary, gemini-2.5-flash is a concrete candidate already present in upstream;
-  it requires explicit approval and remains a scientific deviation.
+  necessary, the old Gemini 2.5 alias was already present upstream. Its availability and
+  past model-choice discussion are historical; the explicitly authorized active
+  substitution is Gemini 3.5 Flash-Lite, documented separately.
 
 ## Interpretation limits
 

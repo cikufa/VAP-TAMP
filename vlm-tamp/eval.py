@@ -213,8 +213,9 @@ def yaw_to_quaternion(yaw):
 
 
 def sample_teleport_pose_near_object(ap, obj, pose_on_obj=None, **kwargs):
-    from primitive_compat import sample_aabb_side, navigation_target_rooms
+    from primitive_compat import sample_aabb_side, navigation_target_rooms, ignore_copy_self_collisions
     with PlanningContext(ap.robot, ap.robot_copy, "simplified") as context:
+        ignore_copy_self_collisions(context)
         for _ in range(MAX_ATTEMPTS_FOR_SAMPLING_POSE_NEAR_OBJECT):
             # if pose_on_obj is None:
             pos_on_obj = sample_aabb_side(obj)

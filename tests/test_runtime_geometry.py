@@ -10,11 +10,24 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'vlm-tamp'))
 sys.path.insert(0, str(ROOT / 'scripts'))
-from primitive_compat import sample_aabb_side, navigation_target_rooms
+from primitive_compat import sample_aabb_side, navigation_target_rooms, ignore_copy_self_collisions
 from native_runtime import apply_cpu_affinity
 
 
 class RuntimeGeometry(unittest.TestCase):
+    def test_base_filter_only_adds_robot_copy_meshes(self):
+        def mesh(path):
+            return SimpleNamespace(GetPrimPath=lambda: SimpleNamespace(pathString=path))
+        context = SimpleNamespace(robot_copy_type='original',
+            robot_copy=SimpleNamespace(meshes={'original': {
+                'torso': {'mesh': mesh('/copy/torso')}, 'elbow': {'mesh': mesh('/copy/elbow')}}}),
+            disabled_collision_pairs_dict={'/copy/torso': ['/original_robot'], '/copy/elbow': ['/floor']})
+        self.assertEqual(ignore_copy_self_collisions(context), 2)
+        self.assertIn('/copy/elbow', context.disabled_collision_pairs_dict['/copy/torso'])
+        self.assertIn('/copy/torso', context.disabled_collision_pairs_dict['/copy/elbow'])
+        self.assertIn('/floor', context.disabled_collision_pairs_dict['/copy/elbow'])
+        self.assertNotIn('/wall', context.disabled_collision_pairs_dict['/copy/elbow'])
+
     def test_carried_object_uses_current_room_instead_of_cached_origin(self):
         obj = SimpleNamespace(fixed_base=False, in_rooms=['garden_0'],
                               get_position=lambda: np.array([2., 3., .14]))

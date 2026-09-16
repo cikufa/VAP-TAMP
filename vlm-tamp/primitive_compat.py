@@ -2,6 +2,21 @@
 import numpy as np
 
 
+def ignore_copy_self_collisions(context):
+    """Restore OG simplified-base-copy semantics when Fetch falls back to original.
+
+    The posture is fixed during base sampling. Only copy-against-copy overlaps
+    are filtered; all existing environment collision rules remain intact.
+    This mirrors PlanningContext's existing simplified-copy self filtering.
+    """
+    paths = [mesh.GetPrimPath().pathString
+             for meshes in context.robot_copy.meshes[context.robot_copy_type].values()
+             for mesh in meshes.values()]
+    for ignored in context.disabled_collision_pairs_dict.values():
+        ignored.extend(path for path in paths if path not in ignored)
+    return len(paths)
+
+
 def navigation_target_rooms(obj, segmentation_map, point_on_object):
     """Use current location for movable objects; in_rooms is static OG metadata.
 
