@@ -123,6 +123,8 @@ def main():
     events_path = out / 'trace/events.jsonl'
     events = [json.loads(line) for line in events_path.read_text().splitlines()] if events_path.exists() else []
     metadata['completed_trials'] = sum(event.get('event') == 'trial_end' for event in events)
+    metadata['final_goal_diagnostics'] = [event.get('final_goal_diagnostics')
+                                          for event in events if event.get('event') == 'trial_end']
     metadata['all_requested_trials_completed'] = metadata['completed_trials'] == args.trials
     metadata['cpu_affinity'] = sorted(os.sched_getaffinity(0))
     (out / 'run_metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')

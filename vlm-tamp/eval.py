@@ -18,7 +18,7 @@ from omnigibson.macros import gm
 from omnigibson.utils.constants import semantic_class_id_to_name
 from pddl_sim import pddlsim
 from gpt4v import GPT4VAgent
-from repro_trace import record, simulator_state
+from repro_trace import record, simulator_state, final_goal_diagnostics
 # The optional Vertex Gemini wrapper constructs a cloud client at import time.
 # Do not import it on the released GPT4V path.
 
@@ -1442,6 +1442,7 @@ while trial_counter < NUM_TRIALS:
                     label += f"\nMismatch: {obs_log['pre_mismatch']}"
                     ax1.set_xlabel(label, fontsize=15)
                 plt.savefig(os.path.join(trial_dir, f"{action_counter-1}.png"))
+                plt.close(fig)
 
                 if unmatch:
                     break
@@ -1522,7 +1523,9 @@ while trial_counter < NUM_TRIALS:
         with open("exp_results.json", "w") as f:
             json.dump(exp_results, f)
         record('trial_end', trial=trial_counter, action_count=action_counter,
-               released_cumulative_results=exp_results)
+               released_cumulative_results=exp_results,
+               final_goal_diagnostics=final_goal_diagnostics(
+                   env, a_name, obj_held, onfloor_relationships))
         trial_counter += 1
 
 print("=" * 30)
