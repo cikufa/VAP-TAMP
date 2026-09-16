@@ -19,6 +19,10 @@ export OMNIGIBSON_ASSET_PATH="$VAPTAMP_ROOT/.runtime/data/assets"
 export OMNIGIBSON_DATASET_PATH="$VAPTAMP_ROOT/.runtime/data/og_dataset"
 export OMNIGIBSON_KEY_PATH="$VAPTAMP_ROOT/.runtime/data/omnigibson.key"
 export OMNIGIBSON_GPU_ID=0
+# The isolated Conda OpenSSL lookup does not find Ubuntu's installed CA bundle
+# after the workspace relocation. Point urllib at the existing read-only host
+# trust store so Gemini HTTPS requests retain certificate verification.
+export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$CUDA_CACHE_PATH" "$__GL_SHADER_DISK_CACHE_PATH" "$NLTK_DATA"
 
 # Native OptiX and telemetry do not follow the CUDA/GL cache settings.

@@ -53,3 +53,10 @@ runtime prepend its current project-local `.runtime/OmniGibson` checkout to
 `PYTHONPATH`. This changes no scene, seed, PDDL, camera, action, metric, VLM,
 or decision logic. The failed attempt remains preserved as infrastructure-only
 evidence and is excluded from scientific results.
+
+The next debug attempt reached the first Gemini request but the isolated Conda
+OpenSSL configuration could not locate a certificate issuer. The runtime now
+sets `SSL_CERT_FILE` to Ubuntu's existing read-only CA bundle at
+`/etc/ssl/certs/ca-certificates.crt`. Certificate verification remains enabled;
+no certificate or system package was added or changed. That second failed
+attempt is likewise retained and excluded.
