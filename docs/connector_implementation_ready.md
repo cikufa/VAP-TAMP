@@ -89,9 +89,23 @@ The launcher uses the existing isolated engine environment. It checks frozen
 hashes, pins the accepted Gemini backend/model, runs two non-metric debug episodes,
 then the 20 seeds. Completed task failures are retained. API/infrastructure failures
 stop the run and preserve the attempt; the same command resumes in a new attempt.
-No mock fallback exists. Debug images and parsing are checked; AP is not forced
-if the real model does not request it. Native AP mechanics are already validated
-by the mock path.
+No mock fallback exists. Debug images and parsing are checked per episode; the
+two-episode debug gate also requires camera motion, symbolic correction, and
+replanning. A bounded debug episode can pass these plumbing checks without task
+completion and remains excluded from metrics. Scientific attempts still require
+a normal episode end. Native AP mechanics are also validated by the mock path.
+
+To finish or re-audit only the two non-metric episodes before spending quota on
+the evaluation set:
+
+```bash
+.runtime/envs/vaptamp-repro/bin/python scripts/run_connector_vaptamp.py \
+  --seeds experiments/connector_handoff/eval_seeds.json --live-vlm --debug-only
+```
+
+The debug timeout defaults to 900 seconds and can be shortened with
+`--debug-timeout`; the 20 scientific trials retain the separate 1800-second
+default.
 
 One-command analysis, including missing offline counterfactuals:
 

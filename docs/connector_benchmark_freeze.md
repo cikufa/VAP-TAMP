@@ -60,3 +60,21 @@ sets `SSL_CERT_FILE` to Ubuntu's existing read-only CA bundle at
 `/etc/ssl/certs/ca-certificates.crt`. Certificate verification remains enabled;
 no certificate or system package was added or changed. That second failed
 attempt is likewise retained and excluded.
+
+The CA-corrected attempt then completed 120 genuine Gemini responses against
+121 recorded image requests before its manual debug bound. Pixel auditing ties
+every request to the corresponding native sensor image. The trace includes
+parsed votes and verifications, three executed camera motions, symbolic
+corrections after failed insertion, and replanning. It also revealed a genuine
+non-metric behavior: Gemini repeatedly reported left-side clearance in the
+`LEFT_CONSTRAINED` condition, so the policy retained the incompatible left grasp
+and retried insertion. This is an observed model/policy outcome, not an
+infrastructure failure or a scientific trial.
+
+Commit `d32ec05` corrects the live harness so bounded debug episodes are accepted
+by their stated plumbing gates even if the task does not terminate. Each debug
+episode must have byte-verified native image payloads, successful live Gemini
+responses, parsed votes, and parsed verification. Across the pair, the runner
+also requires a real camera motion, symbolic correction, and replanning. These
+checks remain separate from scientific acceptance: a scientific attempt is
+accepted only after a normal episode end without an infrastructure error.
