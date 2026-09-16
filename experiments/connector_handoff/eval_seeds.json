@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "generator_seed": 20260915,
+  "geometry_perturbations": false,
+  "regime": "Fixed two-condition geometry; seeds initialize Python/NumPy RNG, no invented noise",
+  "debug_trials": [
+    {
+      "trial_id": "debug_000",
+      "seed": 51967,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "debug_001",
+      "seed": 75367,
+      "condition": "RIGHT_CONSTRAINED"
+    }
+  ],
+  "trials": [
+    {
+      "trial_id": "episode_000",
+      "seed": 682477,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_001",
+      "seed": 616003,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_002",
+      "seed": 745268,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_003",
+      "seed": 118624,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_004",
+      "seed": 778600,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_005",
+      "seed": 226367,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_006",
+      "seed": 117659,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_007",
+      "seed": 929178,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_008",
+      "seed": 359354,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_009",
+      "seed": 764555,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_010",
+      "seed": 27844,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_011",
+      "seed": 902087,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_012",
+      "seed": 433863,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_013",
+      "seed": 823801,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_014",
+      "seed": 318466,
+      "condition": "RIGHT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_015",
+      "seed": 147147,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_016",
+      "seed": 596514,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_017",
+      "seed": 479846,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_018",
+      "seed": 759770,
+      "condition": "LEFT_CONSTRAINED"
+    },
+    {
+      "trial_id": "episode_019",
+      "seed": 177058,
+      "condition": "LEFT_CONSTRAINED"
+    }
+  ]
+}

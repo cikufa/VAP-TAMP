@@ -51,7 +51,7 @@ the broken helper. Full baseline acceptance remains incomplete.
 | VLMViewGuide | Sufficiency and directions | Task-specific grasp/door guidance | Source audited | E runtime | No | Not generic predicate verifier |
 | Graph construction | RGB-D instances/relations | Standalone exporter + Stretch SceneGraph | Not executed | E | No | Simulation does not call exporter |
 | Graph maintenance | Observation and expected-effect updates | PDDL string corrections; no generic observation refresh in AP | Live PDDL corrections; optional RGB-D instance memory + symbolic facts | C/D optional | Separate adapter | Small task-object memory, not complete voxel-map reconstruction |
-| Connector / physical insertion | New diagnostic, not paper task | Not released | Not implemented | E | No | Successful original baseline commit required first |
+| Connector / physical insertion | New diagnostic, not paper task | Not released | Native crossover and mock pipeline validated; see connector_implementation_ready.md | D, custom benchmark | New task files only | User accepted c315720 as frozen baseline; no live connector scientific results |
 
 The fixed-view pilot is execution evidence, not model equivalence. Two of three
 trials after the room fix physically achieved the released PDDL goal; all historical

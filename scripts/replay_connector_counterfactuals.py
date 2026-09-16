@@ -11,7 +11,9 @@ def replay(episode,output,observability,timeout=180):
     if not (metric['Y1'] and metric['Y2'] is False):return None
     output=Path(output).resolve()
     if (output/'counterfactual.json').exists():return json.loads((output/'counterfactual.json').read_text())
-    if output.exists():raise RuntimeError(f'Incomplete replay preserved at {output}; use a new attempt directory')
+    canonical=output
+    if output.exists():
+        output=canonical/('retry_'+datetime.datetime.now().strftime('%Y%m%dT%H%M%S'))
     req=output.parent/(output.name+'_request.json');req.parent.mkdir(parents=True,exist_ok=True)
     req.write_text(json.dumps(dict(condition=metric['condition'],seed=metric['seed'],original_episode=str(episode),
         initial_state=str(episode/'initial_state.pkl'),alternate_grasp='gR' if metric['grasp_choice']=='gL' else 'gL',
@@ -21,7 +23,10 @@ def replay(episode,output,observability,timeout=180):
     if not any(x['condition']==metric['condition'] and x['view']!='initial' and x['visibility_evidence']['visually_relevant'] and all(x['executed_moves']) for x in evidence):
         raise RuntimeError('No validated informative pregrasp view')
     if native('counterfactual',output,timeout,{'CONNECTOR_REPLAY_REQUEST':req}):raise RuntimeError(f'Replay failed: {output}')
-    render_all(output/'episode');return json.loads((output/'counterfactual.json').read_text())
+    render_all(output/'episode');result=json.loads((output/'counterfactual.json').read_text())
+    result['replay_artifacts']=str(output)
+    if canonical!=output:(canonical/'counterfactual.json').write_text(json.dumps(result,indent=2)+'\n')
+    return result
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--input',type=Path,required=True);p.add_argument('--output',type=Path,default=ROOT/'results/custom_connector/counterfactuals')
